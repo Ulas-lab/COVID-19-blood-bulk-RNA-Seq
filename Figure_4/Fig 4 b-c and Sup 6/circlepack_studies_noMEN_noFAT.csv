@@ -1,0 +1,18 @@
+ StudyID,size, DiseaseCondition,Category
+ GSE112087,120, Autoimmune disease,other
+ GSE66573,14, Control,control
+ GSE143507,101, Autoimmune disease,other
+ GSE99992,172, Chikungunya,viral
+ Covid_1,49, COVID-19,viral
+ GSE97590,56, Ebola vaccine,other
+ GSE57253,25, NLRC4-MAS and NOMID,other
+ GSE90081,24, Rheumatoid arthritis,other
+ GSE63042,129, Sepsis and SIRS,bacterial
+ GSE89403,914, Tuberculosis,bacterial
+ GSE101705,44, Tuberculosis,bacterial
+588242,100, Tuberculosis,bacterial
+ GSE129882,261, Zika,viral
+ Rheinlandstudy,384, Control,control
+GSE107104,33,Tuberculosis + HIV,viral and bacterial
+GSE79362,355,Tuberculosis,bacterial
+GSE84076,36,Tuberculosis,bacterial
