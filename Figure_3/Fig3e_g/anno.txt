@@ -1,0 +1,130 @@
+ID	Neutro	Eosi	Sample_Name_01	Sample_Name_03	General Comment	Diagnosis	severity_phase	severity	phase	CoCena-G	Sex	age	Cell Type	Blood_draw	Days_post_1st_symptoms	WHO_daily	WHO_max	outcome
+9181	#NV	#NV	0740-NN-080420	1		COVID-19	severe_late_1	severe	late_1	G7	F	82	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	21	7	7	discharged
+9182	#NV	#NV	0740-NN-090420	2		COVID-19	severe_late_1	severe	late_1	G7	F	82	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	22	7	7	discharged
+9183	#NV	#NV	0740-NN-110420	3		COVID-19	severe_late_2	severe	late_2	G7	F	82	Granolucytes (RBC-lysed Pancoll pellet)	11.04.2020	24	7	7	discharged
+9184	#NV	#NV	0740-NN-140420	4		COVID-19	severe_late_2	severe	late_2	G7	F	82	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	27	7	7	discharged
+9185	#NV	#NV	0740-NN-220420	5		COVID-19	severe_late_3	severe	late_3	G7	F	82	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	35	4	7	discharged
+9186	#NV	#NV	0740-NN-240420	6		COVID-19	severe_late_3	severe	late_3	G7	F	82	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	37	4	7	discharged
+9187	#NV	#NV	0740-NN-270420	7		COVID-19	severe_late_3	severe	late_3	G7	F	82	Granolucytes (RBC-lysed Pancoll pellet)	27.04.2020	40	4	7	discharged
+9188	#NV	#NV	0740-NN-300320	8	missing	COVID-19	severe_late_1	severe	late_1		F	82	Granolucytes (RBC-lysed Pancoll pellet)	30.03.2020	12	7	7	discharged
+9189	0.800006751	0.091260507	0741-NN-080420	9		COVID-19	severe_late_2	severe	late_2	G4	F	67	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	25	7	7	discharged
+9190	0.801687628	0.086282573	0741-NN-110420	10		COVID-19	severe_late_2	severe	late_2	G3	F	67	Granolucytes (RBC-lysed Pancoll pellet)	11.04.2020	28	7	7	discharged
+9191	0.666873194	0.170649202	0741-NN-140420	11		COVID-19	severe_late_3	severe	late_3	G4	F	67	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	31	7	7	discharged
+9192	0.790738325	0.038732292	0741-NN-170420	12		COVID-19	severe_late_3	severe	late_3	G3	F	67	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	34	7	7	discharged
+9193	0.661576284	0.211068427	0741-NN-220420	13		COVID-19	severe_late_3	severe	late_3	G3	F	67	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	39	7	7	discharged
+9194	0.816244135	0.085086244	0741-NN-240420	14		COVID-19	severe_late_3	severe	late_3	G3	F	67	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	41	7	7	discharged
+9195	0.792105083	0.094103506	0741-NN-290420	15		COVID-19	severe_late_3	severe	late_3	G5	F	67	Granolucytes (RBC-lysed Pancoll pellet)	29.04.2020	46	7	7	discharged
+9196	0.770907333	0.110485794	0742-EH-080420	16		COVID-19	severe_late_1	severe	late_1	G2	F	81	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	13	7	8	deceased
+9197	0.876656181	0.06777244	0742-EH-090420	17		COVID-19	severe_late_1	severe	late_1	G2	F	81	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	14	7	8	deceased
+9198	0.850396889	0.080664607	0742-EH-110420	18		COVID-19	severe_late_1	severe	late_1	G2	F	81	Granolucytes (RBC-lysed Pancoll pellet)	11.04.2020	16	7	8	deceased
+9199	0.833274095	0.103482586	0742-EH-140420	19		COVID-19	severe_late_1	severe	late_1	G2	F	81	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	19	7	8	deceased
+9200	0.853239155	0.073968374	0742-EH-170420	20		COVID-19	severe_late_1	severe	late_1	G3	F	81	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	22	7	8	deceased
+9201	0.800479901	0.14356597	0742-EH-200420	21		COVID-19	severe_late_2	severe	late_2	G4	F	81	Granolucytes (RBC-lysed Pancoll pellet)	20.04.2020	25	7	8	deceased
+9202	0.783059044	0.168721173	0742-EH-220420	22		COVID-19	severe_late_2	severe	late_2	G4	F	81	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	27	7	8	deceased
+9203	0.734392413	0.149636854	0742-EH-240420	23	outlier	COVID-19	severe_late_3	severe	late_3		F	81	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	30	7	8	deceased
+9204	0.863889501	0.028723451	0742-EH-270420	24		COVID-19	severe_late_3	severe	late_3	G3	F	81	Granolucytes (RBC-lysed Pancoll pellet)	27.04.2020	33	7	8	deceased
+9205	0.841873014	0.11612766	0742-EH-290420	25		COVID-19	severe_late_3	severe	late_3	G1	F	81	Granolucytes (RBC-lysed Pancoll pellet)	29.04.2020	35	7	8	deceased
+9206	0.801178797	0.04539162	0746-PG-080420	26		COVID-19	severe_late_1	severe	late_1	G1	M	71	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	14	7	8	deceased
+9207	0.848025877	0.037782727	0746-PG-090420	27		COVID-19	severe_late_1	severe	late_1	G1	M	71	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	15	7	8	deceased
+9208	0.736665011	0.01671174	0746-PG-110420	28		COVID-19	severe_late_1	severe	late_1	G2	M	71	Granolucytes (RBC-lysed Pancoll pellet)	11.04.2020	17	7	8	deceased
+9209	0.770094963	0.114622631	0748-HM-080420	29		COVID-19	mild_late_1	mild	late_1	G5	M	89	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	19	3	4	discharged
+9210	#NV	#NV	0748-HM-090420	30	missing	COVID-19	mild_late_1	mild	late_1		M	89	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	20	3	4	discharged
+9211	0.856065999	0.070570879	0748-HM-140420	31		COVID-19	mild_late_2	mild	late_2	G2	M	89	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	25	3	4	discharged
+9212	0.689831077	0.153119665	0748-HM-170420	32		COVID-19	mild_late_2	mild	late_2	G3	M	89	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	28	3	4	discharged
+9213	0.697470172	0.210178749	0749-CKF-080420	33		COVID-19	mild_late_1	mild	late_1	G4	M	66	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	20	3	4	discharged
+9214	0.887703519	0.057288925	0749-CKF-090420	34	outlier	COVID-19	mild_late_1	mild	late_1		M	66	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	21	3	4	discharged
+9215	0.773068177	0.133802766	0749-CKF-140420	35		COVID-19	mild_late_2	mild	late_2	G3	M	66	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	26	3	4	discharged
+9216	0.382426918	0.364576296	0750-KM-080420	36	lower Neutrophil%	COVID-19	mild_late_2	mild	late_2		M	79	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	23	3	3	discharged
+9217	0.439387459	0.291090692	0750-KM-090420	37	lower Neutrophil%	COVID-19	mild_late_2	mild	late_2		M	79	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	24	3	3	discharged
+9218	0.459013442	0.233961435	0750-KM-140420	38	lower Neutrophil%	COVID-19	mild_late_2	mild	late_3		M	79	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	29	3	3	discharged
+9219	0.272040209	0.306394434	0750-KM-170420	39	lower Neutrophil%	COVID-19	mild_late_3	mild	late_3		M	79	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	32	3	3	discharged
+9220	0.409667619	0.286679398	0750-KM-200420	40	lower Neutrophil%	COVID-19	mild_late_3	mild	late_3		M	79	Granolucytes (RBC-lysed Pancoll pellet)	20.04.2020	35	3	3	discharged
+9221	#NV	#NV	0758-SC-080420	41	<5Mio reads	COVID-19	severe_early	severe	early		F	83	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	9	7	8	deceased
+9222	0.821161523	0.033576908	0758-SC-090420	42		COVID-19	severe_early	severe	early	G2	F	83	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	10	7	8	deceased
+9223	0.83678019	0.016356772	0758-SC-110420	43		COVID-19	severe_late_1	severe	late_1	G2	F	83	Granolucytes (RBC-lysed Pancoll pellet)	11.04.2020	12	7	8	deceased
+9224	0.853382614	0.059093653	0758-SC-140420	44		COVID-19	severe_late_1	severe	late_1	G2	F	83	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	15	7	8	deceased
+9225	0.852777372	0.045742904	0758-SC-150420	45		COVID-19	severe_late_1	severe	late_1	G2	F	83	Granolucytes (RBC-lysed Pancoll pellet)	15.04.2020	16	7	8	deceased
+9226	0.855279923	0.039334672	0758-SC-160420	46		COVID-19	severe_late_1	severe	late_1	G1	F	83	Granolucytes (RBC-lysed Pancoll pellet)	16.04.2020	17	7	8	deceased
+9227	0.711651812	0.104761173	0758-SC-170420	47		COVID-19	severe_late_1	severe	late_1	G3	F	83	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	18	7	8	deceased
+9228	0.852759143	0.068550881	0759-SA-080420	48		COVID-19	severe_early	severe	early	G2	M	83	Granolucytes (RBC-lysed Pancoll pellet)	08.04.2020	5	7	8	deceased
+9229	0.852563395	0.064344336	0759-SA-090420	49		COVID-19	severe_early	severe	early	G5	M	83	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	6	7	8	deceased
+9230	0.78149616	0.001203955	0759-SA-110420	50		COVID-19	severe_early	severe	early	G2	M	83	Granolucytes (RBC-lysed Pancoll pellet)	11.04.2020	8	7	8	deceased
+9231	0.799390121	0.02432675	0759-SA-140420	51		COVID-19	severe_late_1	severe	late_1	G2	M	83	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	11	7	8	deceased
+9232	0.821558887	0.026282551	0759-SA-170420	52		COVID-19	severe_late_1	severe	late_1	G3	M	83	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	14	7	8	deceased
+9233	0.873892299	0.042868844	0759-SA-220420	53		COVID-19	severe_late_1	severe	late_1	G3	M	83	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	19	7	8	deceased
+9234	0.857789709	0.058853223	0759-SA-240420	54		COVID-19	severe_late_1	severe	late_1	G3	M	83	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	21	7	8	deceased
+9235	0.764595503	0.018637586	0759-SA-270420	55	outlier	COVID-19	severe_late_2	severe	late_2		M	83	Granolucytes (RBC-lysed Pancoll pellet)	27.04.2020	24	7	8	deceased
+9236	0.769488099	0.034041288	0759-SA-290420	56		COVID-19	severe_late_2	severe	late_2	G1	M	83	Granolucytes (RBC-lysed Pancoll pellet)	29.04.2020	26	4	8	deceased
+9237	0.834333433	0.021618549	0761-IM-090420	57		COVID-19	severe_early	severe	early	G3	M	52	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	6	4	7	unclear
+9238	#NV	#NV	0761-IM-110420	58	<5Mio reads	COVID-19	severe_early	severe	early		M	52	Granolucytes (RBC-lysed Pancoll pellet)	11.04.2020	8	7	7	unclear
+9239	0.822645528	0.006133034	0761-IM-140420	59		COVID-19	severe_late_1	severe	late_1	G2	M	52	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	11	7	7	unclear
+9240	0.782414306	0.001755275	0761-IM-150420	60		COVID-19	severe_late_1	severe	late_1	G2	M	52	Granolucytes (RBC-lysed Pancoll pellet)	15.04.2020	12	7	7	unclear
+9241	0.894043261	0.014369148	0761-IM-170420	61		COVID-19	severe_late_1	severe	late_1	G2	M	52	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	14	7	7	unclear
+9242	#NV	#NV	0761-IM-220420	62	<5Mio reads	COVID-19	severe_late_1	severe	late_1		M	52	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	19	7	7	unclear
+9243	0.802266434	0.017563858	0761-IM-240420	63	outlier	COVID-19	severe_late_1	severe	late_1		M	52	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	21	7	7	unclear
+9244	0.815389978	0.044355935	0761-IM-270420	64	outlier	COVID-19	severe_late_2	severe	late_2		M	52	Granolucytes (RBC-lysed Pancoll pellet)	27.04.2020	24	7	7	unclear
+9245	0.791047711	0.053584413	0761-IM-290420	65		COVID-19	severe_late_2	severe	late_2	G2	M	52	Granolucytes (RBC-lysed Pancoll pellet)	29.04.2020	26	7	7	unclear
+9246	#NV	#NV	0762-GA-090420	66	missing	COVID-19-neg	neg	neg	neg		M	57	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	n.a.	n.a.	n.a.	n.a.
+9247	#NV	#NV	0763-CAU-090420	67	<5Mio reads	COVID-19	mild_early	mild	early		M	64	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	3	3	4	discharged
+9248	0.830734103	0.020687061	0763-CAU-140420	68		COVID-19	mild_early	mild	early	G5	M	64	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	8	4	4	discharged
+9249	0.740826329	0.107747332	0763-CAU-200420	69		COVID-19	mild_late_1	mild	late_1	G4	M	64	Granolucytes (RBC-lysed Pancoll pellet)	20.04.2020	14	4	4	discharged
+9250	#NV	#NV	0763-CAU-220420	70	too many 0s	COVID-19	mild_late_1	mild	late_1		M	64	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	16	3	4	discharged
+9251	#NV	#NV	0764-SB-090420	71	outlier	COVID-19	mild_early	mild	early		F	85	Granolucytes (RBC-lysed Pancoll pellet)	09.04.2020	3	3	3	discharged
+9252	0.820931754	0.092276108	0764-SB-140420	72		COVID-19	mild_early	mild	early	G4	F	85	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	8	3	3	discharged
+9253	0.693144471	0.203211797	0764-SB-150420	73		COVID-19	mild_early	mild	early	G3	F	85	Granolucytes (RBC-lysed Pancoll pellet)	15.04.2020	9	3	3	discharged
+9254	0.71292856	0.161662901	0764-SB-160420	74		COVID-19	mild_early	mild	early	G3	F	85	Granolucytes (RBC-lysed Pancoll pellet)	16.04.2020	10	3	3	discharged
+9255	0.747977945	0.106434068	0764-SB-170420	75		COVID-19	mild_late_1	mild	late_1	G3	F	85	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	11	3	3	discharged
+9256	0.687313411	0.195593098	0764-SB-200420	76		COVID-19	mild_late_1	mild	late_1	G3	F	85	Granolucytes (RBC-lysed Pancoll pellet)	20.04.2020	14	3	3	discharged
+9257	0.755411942	0.145974356	0764-SB-220420	77		COVID-19	mild_late_1	mild	late_1	G3	F	85	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	16	3	3	discharged
+9258	0.62621456	0.156219054	0764-SB-240420	78	too many 0s	COVID-19	mild_late_1	mild	late_1		F	85	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	18	3	3	discharged
+9259	#NV	#NV	0764-SB-280420	79	too many 0s	COVID-19	mild_late_1	mild	late_1		F	85	Granolucytes (RBC-lysed Pancoll pellet)	28.04.2020	22	3	3	discharged
+9260	#NV	#NV	0764-SB-300420	80	<5Mio reads	COVID-19	mild_late_2	mild	late_2		F	85	Granolucytes (RBC-lysed Pancoll pellet)	30.04.2020	24	3	3	discharged
+9261	0.821125053	0.002710076	0765-BB-140420			COVID-19	mild_late_1	mild	late_1		F	63	Granolucytes (RBC-lysed Pancoll pellet)	14.04.2020	13	4	4	discharged
+9262	0.85422949	0.061968992	0765-BB-220420			COVID-19	mild_late_1	mild	late_1		F	63	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	21	4	4	discharged
+9263	#NV	#NV	0765-BB-240420			COVID-19	mild_late_2	mild	late_2		F	63	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	23	4	4	discharged
+9264	0.770211148	0.05619641	0767-LB-150420			COVID-19-neg	neg	neg	neg		M	78	Granolucytes (RBC-lysed Pancoll pellet)	15.04.2020	5	3	3	discharged
+9265	0.808673557	0.090804342	0768-FK-150420			COVID-19-neg	neg	neg	neg		F	90	Granolucytes (RBC-lysed Pancoll pellet)	15.04.2020	1	3	4	discharged
+9266	#NV	#NV	0769-HA-170420			COVID-19	mild_early	mild	early		F	42	Granolucytes (RBC-lysed Pancoll pellet)	17.04.2020	5	3	3	discharged
+9267	0.885725709	0.028630762	0771-SR-200420			COVID-19	mild_early	mild	early		F	74	Granolucytes (RBC-lysed Pancoll pellet)	20.04.2020	6	3	3	discharged
+9268	#NV	#NV	0771-SR-220420			COVID-19	mild_early	mild	early		F	74	Granolucytes (RBC-lysed Pancoll pellet)	22.04.2020	8	3	3	discharged
+9269	0.868569269	0.039825202	0771-SR-230420			COVID-19	mild_early	mild	early		F	74	Granolucytes (RBC-lysed Pancoll pellet)	23.04.2020	9	3	3	discharged
+9270	#NV	#NV	0771-SR-240420			COVID-19	mild_early	mild	early		F	74	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	10	3	3	discharged
+9271	#NV	#NV	0772-CPS-200420			COVID-19	mild_early	mild	early		F	22	Granolucytes (RBC-lysed Pancoll pellet)	20.04.2020	4	3	3	discharged
+9272	#NV	#NV	0776-NA-240420			COVID-19	mild_early	mild	early		F	49	Granolucytes (RBC-lysed Pancoll pellet)	24.04.2020	8	3	3	discharged
+9273	0.845550604	0.031611008	0777-AE-290420			COVID-19	mild_early	mild	early		M	28	Granolucytes (RBC-lysed Pancoll pellet)	29.04.2020	8	4	4	discharged
+9274	0.777540572	0.046958899	0777-AE-300420			COVID-19	mild_early	mild	early		M	28	Granolucytes (RBC-lysed Pancoll pellet)	30.04.2020	9	4	4	discharged
+9392	0.818069365	0.087712814	KD_65M_Granulocyte_200512			control	control	control	control		M	55	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9393	0.846969132	0.077759638	OB_67M_Granulocyte_200512			control	control	control	control		M	52	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9394	0.862102921	0	RB_69F_Granulocyte_200512			control	control	control	control		F	75	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9395	0.877038742	0.031988471	SO_45F_Granulocyte_200512			control	control	control	control		F	50	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9396	0.886231934	0.024160771	LSS_56F_Granulocyte_200512			control	control	control	control		F	63	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9397	0.896594199	0.037700039	MM_62F_Granulocyte_200512			control	control	control	control		F	58	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9398	0.89750654	0.028380067	AH_54F_Granulocyte_200512			control	control	control	control		F	66	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9399	0.833199736	0.051015763	MR_43M_Granulocyte_200512			control	control	control	control		M	76	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9400	0.753892154	0.0731125	HGS_58M_Granulocyte_200512			control	control	control	control		M	61	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9401	#NV	#NV	RC_60M_Granulocyte_200512			control	control	control	control		M	59	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9402	0.77911338	0.010592496	711_KarakayaOezden_200512	Patient 781_KO		COVID-19	severe_late_1	severe	late_1		F	76	Granulocyte Pellet in Trizol	12.05.2020	12	7	8	deceased
+9403	0.818394051	0.00600487	703_ElviraSchulz_200512	Patient 782_SE		COVID-19	severe_early	severe	early		F	64	Granulocyte Pellet in Trizol	12.05.2020	3	5	7	discharged
+9404	#NV	#NV	AB_67F_Granulocyte_200512			control	control	control	control		F	52	Granulocyte Pellet in Trizol	12.05.2020	n.a.	n.a.	n.a.	n.a.
+9405	0.818454556	0.05431677	782_SE_200529			COVID-19	severe_late_1	severe	late_1		F	64	Granulocyte Pellet in Trizol	29.05.2020	20	5	7	discharged
+9406	0.83908179	0	783_SC_200529			COVID-19	severe_late_1	severe	late_1		F	63	Granulocyte Pellet in Trizol	29.05.2020	19	7	8	deceased
+9407	#NV	#NV	792_EE_200529			COVID-19	mild_early	mild	early		M	65	Granulocyte Pellet in Trizol	29.05.2020	3	3	3	discharged
+9408	0.77804728	0.04651849	785_IA_200529			COVID-19	mild_late_1	mild	late_1		F	42	Granulocyte Pellet in Trizol	29.05.2020	14	4	4	discharged
+9409	0.747800709	0.076691383	HD13_BK_739_200529			control	control	control	control		M	42	Granulocyte Pellet in Trizol	29.05.2020	n.a.	n.a.	n.a.	n.a.
+9410	0.781457913	0.045613761	HD14_JLS_200529			control	control	control	control		M	55	Granulocyte Pellet in Trizol	29.05.2020	n.a.	n.a.	n.a.	n.a.
+9441	0.749210986	0.033148436	782_ES_200609			COVID-19	severe_late_3	severe	late_3		F	64	Granulocyte Pellet in Trizol	09.06.2020	31	4	7	discharged
+9442	#NV	#NV	783_SC_200609			COVID-19	severe_late_3	severe	late_3		F	63	Granulocyte Pellet in Trizol	09.06.2020	29	7	8	deceased
+9443	0.832397031	0.030913657	HD01_200609			control	control	control	control		M	49	Granulocyte Pellet in Trizol	09.06.2020	n.a.	n.a.	n.a.	n.a.
+9444	0.890400541	0.019419699	782_Granu_200616			COVID-19	severe_late_3	severe	late_3		F	64	Granulocyte Pellet in Trizol	16.06.2020	38	3	7	discharged
+9445	#NV	#NV	783_Granu_200616			COVID-19	severe_late_3	severe	late_3		F	63	Granulocyte Pellet in Trizol	16.06.2020	36	7	8	deceased
+9446	0.788803029	0.070368749	782_200605_Qiazol			COVID-19	severe_late_2	severe	late_2		F	64	Granulocyte Pellet in Trizol	05.06.2020	27	4	7	discharged
+9447	#NV	#NV	783_200605_Qiazol			COVID-19	severe_late_2	severe	late_2		F	63	Granulocyte Pellet in Trizol	05.06.2020	25	7	8	deceased
+9448	0.884439659	0.016749428	HD15_PB_200605_Qiazol			control	control	control	control		F	53	Granulocyte Pellet in Trizol	05.06.2020	n.a.	n.a.	n.a.	n.a.
+9449	0.918172111	0.018801716	HD16_RT_200605_Qiazol			control	control	control	control		M	58	Granulocyte Pellet in Trizol	05.06.2020	n.a.	n.a.	n.a.	n.a.
+9450	0.855674164	0.043140103	HD17_BC_200605_Qiazol			control	control	control	control		M	50	Granulocyte Pellet in Trizol	05.06.2020	n.a.	n.a.	n.a.	n.a.
+9451	0.875454695	0.054901802	HD18_YK_200605_Qiazol			control	control	control	control		M	58	Granulocyte Pellet in Trizol	05.06.2020	n.a.	n.a.	n.a.	n.a.
+9452	0.913539962	0.032309949	HD19_EHJ_200605_Qiazol			control	control	control	control		M	79	Granulocyte Pellet in Trizol	05.06.2020	n.a.	n.a.	n.a.	n.a.
+9453	0.894891313	0.044482542	HD20_SSD_200605_Qiazol			control	control	control	control		M	40	Granulocyte Pellet in Trizol	05.06.2020	n.a.	n.a.	n.a.	n.a.
+9454	0.878101017	0.060840817	HD21_KKH_200605_Qiazol			control	control	control	control		M	57	Granulocyte Pellet in Trizol	05.06.2020	n.a.	n.a.	n.a.	n.a.
+9455	0.228906347	0.0302612	781_KO_200511			COVID-19	severe_late_1	severe	late_1		F	76	Granulocyte Pellet in Trizol	11.05.2020	11	7	8	deceased
+9456	0.82847443	0.011646859	782_ES_200511			COVID-19	severe_early	severe	early		F	64	Granulocyte Pellet in Trizol	11.05.2020	2	5	7	discharged
