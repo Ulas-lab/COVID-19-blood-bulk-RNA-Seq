@@ -1,0 +1,1336 @@
+---
+title: "Download and analysis of drug signatures"
+author: "Nico Reusch & Rainer Knoll"
+date: "14 6 2020"
+output: 
+  html_document: 
+    toc: true
+    toc_float: true
+    theme: united
+    number_sections: true
+    code_folding: hide
+---
+
+
+# 1. Load Packages  
+
+```{r include = FALSE}
+library(knitr)
+library(tinytex)
+library(httr)
+library(jsonlite)
+library(htmltools)
+library(foreach)
+library(doMC)
+library(BiocParallel)
+library(ggplot2)
+library(dplyr)
+require(gdata)
+```
+
+```{r set-options, echo=FALSE, cache=FALSE}
+options(width = "200")
+```
+
+
+# 2. Signature Loading
+
+## Display Signature Libraries
+
+```{r list signature libraries}
+apiUrl <- "http://www.ilincs.org/api/SignatureLibraries"
+req <- GET(apiUrl)
+json <- httr::content(req, as = "text")
+ilincs_libraries <- fromJSON(json)
+ilincs_libraries[,c("libraryID","libraryName")]
+```
+
+## Drugs of interest
+
+```{r}
+drugs_of_interest<-read.csv("./20200522_drug_list_CLUE_iLINCS_current_combined.csv", header=FALSE)
+drugs_of_interest<-as.character(drugs_of_interest$V2)
+drugs_of_interest<-gsub(drugs_of_interest,pattern = " ",replacement = "%20")
+```
+
+## Retrieving data
+
+```{r list signature libraries}
+apiUrl <- "http://www.ilincs.org/api/SignatureLibraries"
+req <- GET(apiUrl)
+json <- httr::content(req, as = "text")
+ilincs_libraries <- fromJSON(json)
+ilincs_libraries[,c("libraryID","libraryName")]
+```
+
+## Get Signatures
+
+```{r search signatures, message=FALSE, warning=FALSE}
+### Create empty list with entries for each databank
+data_bank_list<-list()
+for (i in ilincs_libraries$libraryID) {
+  data_bank_list[[paste(i)]]<-list()
+}
+
+data_bank_no_entry<-list()
+for (i in ilincs_libraries$libraryID) {
+  data_bank_no_entry[[paste(i)]]<-list()
+}
+
+
+library(foreach)
+#install.packages("doMC")
+library(doMC)
+
+
+registerDoMC(20)  #
+
+for (i in drugs_of_interest) {
+  term<-i
+  for (j in names(data_bank_list)) {
+    ilincs_libId<-j
+    apiUrl <- paste("http://www.ilincs.org/api/SignatureMeta/findTermWithSynonyms?term=",term,"&library=",ilincs_libId,sep="")
+    req <- GET(apiUrl)
+    ilincs_result_df<-fromJSON(httr::content(req,type="text"))$data
+    if(is.data.frame(ilincs_result_df)){
+      data_bank_list[[j]][[paste(i)]]<-ilincs_result_df
+  }
+}}
+  
+
+backup_databank<-data_bank_list
+saveRDS(data_bank_list,"20200523_databank_all_drugs.RDS")
+saveRDS(data_bank_no_entry,"20200523_data_bank_no_entry_all_drugs.RDS")
+
+data_bank_list<-readRDS("20200512_databank_all_drugs.RDS")
+data_bank_no_entry<-readRDS("20200512_data_bank_no_entry_800_drugs.RDS")
+```
+
+
+## Split the list into the different databases
+
+```{r}
+names(data_bank_list)
+
+data_bank_LIB_1<-data_bank_list[["LIB_1"]]
+data_bank_LIB_10<-data_bank_list[["LIB_10"]]
+data_bank_LIB_11<-data_bank_list[["LIB_11"]]
+data_bank_LIB_12<-data_bank_list[["LIB_12"]]
+data_bank_LIB_13<-data_bank_list[["LIB_13"]]
+data_bank_LIB_14<-data_bank_list[["LIB_14"]]
+data_bank_LIB_2<-data_bank_list[["LIB_2"]]
+data_bank_LIB_3<-data_bank_list[["LIB_3"]]
+data_bank_LIB_5<-data_bank_list[["LIB_5"]]
+data_bank_LIB_6<-data_bank_list[["LIB_6"]]
+data_bank_LIB_8<-data_bank_list[["LIB_8"]]
+data_bank_LIB_9<-data_bank_list[["LIB_9"]]
+
+intersect(names(data_bank_LIB_13),names(list_ebi_drugs))
+list_ebi_drugs$chloroquine<-NULL
+list_ebi_drugs$haloperidol<-NULL
+list_ebi_drugs$panobinostat<-NULL
+
+data_bank_LIB_13<-append(data_bank_LIB_13,list_ebi_drugs)
+
+```
+
+## Look at structure of each databank
+
+```{r}
+data_bank_LIB_10$`5-Azacytidine`$signatureid
+data_bank_LIB_11$PIT$signatureid
+data_bank_LIB_12$`1,1-DICHLOROETHENE`$signatureid
+data_bank_LIB_13$`1,1-DICHLOROETHENE`$signatureid
+data_bank_LIB_14$`5-Azacytidine`$signatureid
+data_bank_LIB_2$`5-Azacytidine`$signatureid
+data_bank_LIB_3$forskolin$signatureid
+data_bank_LIB_5$`1-monopalmitin`$signatureid
+data_bank_LIB_6$NECA$signatureid
+data_bank_LIB_8$`CHOLIC%20ACID`$signatureid
+data_bank_LIB_9$`5-Azacytidine`$signatureid
+
+data_bank_LIB_1$anastrozole
+data_bank_LIB_10$`5-Azacytidine`$signatureid
+data_bank_LIB_11$PIT$signatureid
+data_bank_LIB_12$`1,1-DICHLOROETHENE`$signatureid
+data_bank_LIB_13$`1,1-DICHLOROETHENE`$signatureid
+data_bank_LIB_14$`5-Azacytidine`$signatureid
+data_bank_LIB_2$`5-Azacytidine`$signatureid
+data_bank_LIB_3$forskolin$signatureid
+data_bank_LIB_5$`1-monopalmitin`$signatureid
+data_bank_LIB_6$NECA$signatureid
+data_bank_LIB_8$`CHOLIC%20ACID`$signatureid
+data_bank_LIB_9$`5-Azacytidine`$signatureid
+```
+
+## analyze signatures
+
+```{r selectedSignature}
+
+registerDoMC(50)  
+
+drug_sig_Lib1<-list()
+
+drug_sig_Lib1<-foreach(i=names(data_bank_LIB_1),.errorhandling = "pass") %dopar% {
+ilincs_signatureId <- data_bank_LIB_1[[i]]$signatureid
+req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+ilincs_sessionId<-unlist(httr::content(req))
+fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+signatureData$drug<-paste(i)
+signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+signatureData
+}
+
+for (i in 1:length(drug_sig_Lib1)) {
+  names(drug_sig_Lib1)[[i]]<-unique(drug_sig_Lib1[[i]]$drug)
+}
+
+names(drug_sig_Lib1)
+drug_sig_Lib_1<-drug_sig_Lib1
+saveRDS(drug_sig_Lib_1,file="./Disease_signatures/20200523_drug_sig_Lib_1.RDS")
+
+drug_sig_LIB_10<-list()
+
+drug_sig_LIB_10<-foreach(i=names(data_bank_LIB_10),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_10[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_10)) {
+  if(is.data.frame(drug_sig_LIB_10[[i]])){
+    names(drug_sig_LIB_10)[[i]]<-unique(drug_sig_LIB_10[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_10)
+
+saveRDS(drug_sig_LIB_10,file="./Disease_signatures/20200523_drug_sig_LIB_10.RDS")
+gc()
+drug_sig_LIB_11<-list()
+
+drug_sig_LIB_11<-foreach(i=names(data_bank_LIB_11),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_11[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_11)) {
+  if(is.data.frame(drug_sig_LIB_11[[i]])){
+    names(drug_sig_LIB_11)[[i]]<-unique(drug_sig_LIB_11[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_11)
+
+saveRDS(drug_sig_LIB_11,file="./Disease_signatures/20200523_drug_sig_LIB_11.RDS")
+gc()
+drug_sig_LIB_12<-list()
+
+drug_sig_LIB_12<-foreach(i=names(data_bank_LIB_12),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_12[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_12)) {
+  if(is.data.frame(drug_sig_LIB_12[[i]])){
+    names(drug_sig_LIB_12)[[i]]<-unique(drug_sig_LIB_12[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_12)
+
+saveRDS(drug_sig_LIB_12,file="./Disease_signatures/20200523_drug_sig_LIB_12.RDS")
+gc()
+drug_sig_LIB_13<-list()
+
+drug_sig_LIB_13<-foreach(i=names(data_bank_LIB_13),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_13[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_13)) {
+  if(is.data.frame(drug_sig_LIB_13[[i]])){
+    names(drug_sig_LIB_13)[[i]]<-unique(drug_sig_LIB_13[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_13)
+
+saveRDS(drug_sig_LIB_13,file="./Disease_signatures/20200523_drug_sig_LIB_13.RDS")
+gc()
+drug_sig_LIB_14<-list()
+
+drug_sig_LIB_14<-foreach(i=names(data_bank_LIB_14),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_14[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_14)) {
+  if(is.data.frame(drug_sig_LIB_14[[i]])){
+    names(drug_sig_LIB_14)[[i]]<-unique(drug_sig_LIB_14[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_14)
+
+saveRDS(drug_sig_LIB_14,file="./Disease_signatures/20200523_drug_sig_LIB_14.RDS")
+gc()
+
+drug_sig_LIB_2<-list()
+
+drug_sig_LIB_2<-foreach(i=names(data_bank_LIB_2),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_2[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_2)) {
+  if(is.data.frame(drug_sig_LIB_2[[i]])){
+    names(drug_sig_LIB_2)[[i]]<-unique(drug_sig_LIB_2[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+gc()
+names(drug_sig_LIB_2)
+
+saveRDS(drug_sig_LIB_2,file="./Disease_signatures/20200523_drug_sig_LIB_2.RDS")
+drug_sig_LIB_3<-list()
+
+drug_sig_LIB_3<-foreach(i=names(data_bank_LIB_3),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_3[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_3)) {
+  if(is.data.frame(drug_sig_LIB_3[[i]])){
+    names(drug_sig_LIB_3)[[i]]<-unique(drug_sig_LIB_3[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+gc()
+names(drug_sig_LIB_3)
+
+saveRDS(drug_sig_LIB_3,file="./Disease_signatures/20200523_drug_sig_LIB_3.RDS")
+drug_sig_LIB_5<-list()
+
+drug_sig_LIB_5<-foreach(i=names(data_bank_LIB_5),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_5[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+gc()
+for (i in 1:length(drug_sig_LIB_5)) {
+  if(is.data.frame(drug_sig_LIB_5[[i]])){
+    names(drug_sig_LIB_5)[[i]]<-unique(drug_sig_LIB_5[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_5)
+
+saveRDS(drug_sig_LIB_5,file="./Disease_signatures/20200523_drug_sig_LIB_5.RDS")
+drug_sig_LIB_6<-list()
+
+drug_sig_LIB_6<-foreach(i=names(data_bank_LIB_6),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_6[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_6)) {
+  if(is.data.frame(drug_sig_LIB_6[[i]])){
+    names(drug_sig_LIB_6)[[i]]<-unique(drug_sig_LIB_6[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_6)
+gc()
+
+saveRDS(drug_sig_LIB_6,file="./Disease_signatures/20200523_drug_sig_LIB_6.RDS")
+drug_sig_LIB_8<-list()
+
+drug_sig_LIB_8<-foreach(i=names(data_bank_LIB_8),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_8[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_8)) {
+  if(is.data.frame(drug_sig_LIB_8[[i]])){
+    names(drug_sig_LIB_8)[[i]]<-unique(drug_sig_LIB_8[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_8)
+gc()
+
+saveRDS(drug_sig_LIB_8,file="./Disease_signatures/20200523_drug_sig_LIB_8.RDS")
+drug_sig_LIB_9<-list()
+
+drug_sig_LIB_9<-foreach(i=names(data_bank_LIB_9),.errorhandling = "pass") %dopar% {
+  ilincs_signatureId <- data_bank_LIB_9[[i]]$signatureid
+  req <- POST("http://www.ilincs.org/api/ilincsR/downloadSignature", body = list(sigID = paste(ilincs_signatureId), display = FALSE), encode = "json")
+  ilincs_sessionId<-unlist(httr::content(req))
+  fileUrl=paste("http://www.ilincs.org/tmp/",ilincs_sessionId,".xls",sep="")
+  signatureData<-read.table(fileUrl,sep="\t",header=T,stringsAsFactors = F)
+  signatureData$drug<-paste(i)
+  signatureData$merged<-paste(signatureData$drug,signatureData$signatureID,sep="_")
+  signatureData
+}
+
+for (i in 1:length(drug_sig_LIB_9)) {
+  if(is.data.frame(drug_sig_LIB_9[[i]])){
+    names(drug_sig_LIB_9)[[i]]<-unique(drug_sig_LIB_9[[i]]$drug)}
+    
+  else{
+    print(paste("No entry for",i,sep=" "))
+}}
+
+names(drug_sig_LIB_9)
+
+saveRDS(drug_sig_LIB_9,file="./Disease_signatures/20200523_drug_sig_LIB_9.RDS")
+getwd()
+```
+
+## Read saved drug_sig_LIBs
+
+```{r}
+drug_sig_LIB_1 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_Lib_1.RDS")
+drug_sig_LIB_2 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_2.RDS")
+drug_sig_LIB_3 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_3.RDS")
+#drug_sig_LIB_4 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_4.RDS")
+drug_sig_LIB_5 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_5.RDS")
+drug_sig_LIB_6 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_6.RDS")
+#drug_sig_LIB_7 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_7.RDS")
+drug_sig_LIB_8 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_8.RDS")
+drug_sig_LIB_9 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_9.RDS")
+drug_sig_LIB_10 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_10.RDS")
+drug_sig_LIB_11 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_11.RDS")
+drug_sig_LIB_12 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_12.RDS")
+drug_sig_LIB_13 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_13.RDS")
+drug_sig_LIB_14 <-  readRDS("~/data/Analysis/Rainer/Drugs_covid/Disease_signatures/20200523_drug_sig_LIB_14.RDS")
+```
+
+
+# 3. Signature Calculation
+
+Filters:
+- no filtering for threshold
+- order by decreasing |logFC|
+- only Consider max Top300 genes
+
+```{r}
+gc()
+drugs_up_down_LIB_1 <- list()
+for (i in names(drug_sig_LIB_1) ){
+  tmp<-drug_sig_LIB_1[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_1[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_1[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_10 <- list()
+for (i in names(drug_sig_LIB_10) ){
+  tmp<-drug_sig_LIB_10[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_10[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_10[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_11 <- list()
+for (i in names(drug_sig_LIB_11) ){
+  tmp<-drug_sig_LIB_11[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_11[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_11[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_12 <- list()
+for (i in names(drug_sig_LIB_12) ){
+  tmp<-drug_sig_LIB_12[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_12[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_12[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_13 <- list()
+for (i in names(drug_sig_LIB_13) ){
+  tmp<-drug_sig_LIB_13[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_13[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_13[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_14 <- list()
+for (i in names(drug_sig_LIB_14) ){
+  tmp<-drug_sig_LIB_14[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_14[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_14[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_2 <- list()
+for (i in names(drug_sig_LIB_2) ){
+  tmp<-drug_sig_LIB_2[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_2[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_2[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+
+drugs_up_down_LIB_5 <- list()
+for (i in names(drug_sig_LIB_5) ){
+  tmp<-drug_sig_LIB_5[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_5[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_5[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_6 <- list()
+for (i in names(drug_sig_LIB_6) ){
+  tmp<-drug_sig_LIB_6[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_6[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_6[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_8 <- list()
+for (i in names(drug_sig_LIB_8) ){
+  tmp<-drug_sig_LIB_8[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_8[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_8[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+gc()
+drugs_up_down_LIB_9 <- list()
+for (i in names(drug_sig_LIB_9) ){
+  tmp<-drug_sig_LIB_9[[i]]
+  for (j in unique(tmp$signatureID)) {
+    subset<-tmp[tmp$signatureID==j,]
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = T),]
+    subset_up<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp>0,]$Name_GeneSymbol)
+    if(length(subset_up)>300)
+    {subset_up<-subset_up[1:300]}
+    else{
+      print(paste(i,j,"up only has",length(subset_up), "genes",sep=" "))
+    }
+    subset<-subset[order(subset$Value_LogDiffExp,decreasing = F),]
+    subset_down<-as.character(subset[!is.na(subset$Value_LogDiffExp)&subset$Value_LogDiffExp<(-0),]$Name_GeneSymbol)
+    if(length(subset_down)>300){subset_down<-subset_down[1:300]}
+    else{
+      print(paste(i,j,"down only has",length(subset_down), "genes",sep=" "))
+    }
+    drugs_up_down_LIB_9[[paste(i,j,"up",sep="_")]]<-subset_up
+    drugs_up_down_LIB_9[[paste(i,j,"down",sep="_")]]<-subset_down
+  }
+}
+
+drugs_sig_all<- c(drugs_up_down_LIB_1,drugs_up_down_LIB_10,drugs_up_down_LIB_11,drugs_up_down_LIB_12,drugs_up_down_LIB_13,drugs_up_down_LIB_14,drugs_up_down_LIB_2,drugs_up_down_LIB_5,drugs_up_down_LIB_6,drugs_up_down_LIB_8,drugs_up_down_LIB_9)
+
+saveRDS(drugs_sig_all, file = "20200528_drugs_sig_all.RDS")
+```
+
+## save filtered drug signatures
+
+```{r}
+drugs_sig_all_null<-  list()
+
+length(drugs_sig_all$anastrozole_GDS_5614_up)
+for (i in names(drugs_sig_all)) {
+  if(length(drugs_sig_all[[i]])<1){
+    null_sig<-sub('_up|_down', '',names(drugs_sig_all[[i]]))
+    drugs_sig_all_null[[i]]<-null_sig
+  }
+}
+
+drugs_sig_filtered<-drugs_sig_all[!drugs_sig_all%in%drugs_sig_all_null]
+
+saveRDS(drugs_sig_filtered,file = "./Disease_signatures/20200528_drugs_sig_filtered.RDS")
+```
+
+# 4. GSEA
+
+## code for GSEA
+
+```{r}
+rankGSEA_FC <- function(condition, 
+                        control, 
+                        signature,
+                        title) {
+  require(fgsea)
+  test<-paste(condition, "_vs_", control, sep="")
+  ds<-data.frame(DEresults[[test]]@results[, c("GENEID","SYMBOL", "log2FoldChange")])
+  rank_ds <- ds$log2FoldChange
+  names(rank_ds) <- ds$SYMBOL
+  rank_ds <- rank_ds[order(rank_ds, decreasing = T)]
+  gsea_table <- suppressWarnings(fgsea(signature, 
+                  stats = rank_ds,
+                  minSize=1,
+                  maxSize=500,
+                  nperm=10000,nproc=50,BPPARAM = DoparParam()))
+}
+
+rankGSEA_normal <- function(input_data, 
+                         factor, 
+                         condition, 
+                         control, 
+                         signature,
+                         title) {
+  
+  require(fgsea)
+  
+  ds <- data.frame(Mean_control=rowMeans(input_data[, colnames(input_data)%in%sample_table[sample_table[[factor]] %in% c(control),]$ID]),
+                 Mean_condition=rowMeans(input_data[, colnames(input_data)%in%sample_table[sample_table[[factor]] %in% c(condition),]$ID]))
+
+  ds <- cbind(ds, input_data[, c((dim(input_data)[2]-3):dim(input_data)[2])])
+
+  rank_ds <- ds$Mean_condition - ds$Mean_control
+  names(rank_ds) <- ds$SYMBOL
+  rank_ds <- rank_ds[order(rank_ds, decreasing = T)]
+
+  gsea_table <- suppressWarnings(fgsea(signature, 
+                  stats = rank_ds,
+                  minSize=1,
+                  maxSize=Inf,
+                  nperm=50000,nproc=50))
+
+  print(gsea_table)
+  
+  plot <- ggplot(gsea_table, aes(x=NES, y=-log10(pval), alpha=-log10(pval))) + 
+    geom_point(size=10, shape=21, colour="white", fill="black") +
+    theme_bw() +
+    theme(aspect.ratio = 2) +
+    scale_x_continuous(limits = c(-2.5, 2.5))+
+    scale_y_continuous(limits = c(0,4))+
+    scale_fill_viridis_d()+
+    xlab("NES") +
+    ylab("-log10 p value") +
+    geom_vline(xintercept = 0, colour="black", linetype="dashed",  size=0.5) +
+    geom_hline(yintercept = -log10(0.05), colour="black", linetype="dashed",  size=0.5)+
+    ggtitle(title)
+  
+  print(plot)
+}
+
+
+
+```
+
+
+## GSEA calculation
+
+```{r}
+load("~/data/Analysis/Rainer/Drugs_covid/enviroment_new_cluster_allgenes.RData")
+drugs_sig_filtered<-readRDS("./Disease_signatures/20200524_drugs_sig_filtered.RDS")
+
+saveRDS(drugs_sig_filtered,"20200515_drugs_sig_filtered.RDS")
+library(ggplot2)
+disease_signatures_gsea<-list()
+for (i in unique(sample_table$new_cluster)[c(1,2,4,5,6)]) {
+  disease_signatures_gsea_subset<-rankGSEA_FC(
+          condition=i, 
+          control="3", 
+          signature=drugs_sig_filtered,
+          title=paste("diseases GSEA in cluster",i,"VS 3",sep="_"))
+  
+  disease_signatures_gsea_subset$comparison<-paste(i,"VS_3",sep="_")
+  disease_signatures_gsea[[paste(i,"VS_3",sep = "_")]]<-disease_signatures_gsea_subset
+}
+
+saveRDS(disease_signatures_gsea,"./Disease_signatures/disease_signatures_gsea.RDS")
+merged_disease_df<-Reduce(rbind, disease_signatures_gsea)
+saveRDS(merged_disease_df,"./Disease_signatures/20200528_merged_drugs_df.RDS")
+```
+
+
+## Calculatiing ratio from positive and negative enrichment
+
+```{r}
+merged_disease_df<-readRDS("./Disease_signatures/20200524_merged_drugs_df.RDS")
+
+merged_disease_df$drug_sig<- sub('_up|_down', '',merged_disease_df$pathway)
+merged_disease_df$regulation<-sub('.*\\_', '', merged_disease_df$pathway)
+
+data_bank_list_filtered_all <- data_bank_list_filtered 
+length(unique(merged_disease_df$drug_sig))
+length(unique(data_bank_list_filtered_all$drug_sig))
+
+merged_disease_df<-merge(merged_disease_df,data_bank_list_filtered_all,by="drug_sig")
+
+#signatures_to_exclude<-merged_disease_df[is.na(merged_disease_df$NES),]
+#saveRDS(merged_disease_df,"./Disease_signatures/20200513_merged_drugs_df.RDS")
+```
+
+# 5. Delta NES calculation
+
+## Breaklist for heatmaps
+
+```{r}
+breaksList = seq(-5, 5, by = 1)
+```
+
+## delta NES calculation
+
+```{r}
+saveRDS(merged_disease_df,"20200528_merged_drugs_NES.RDS")
+
+list_nes_delta<-list()
+for (i in unique(merged_disease_df$drug_sig)) {
+  merged_drugs_df_subset<-merged_disease_df[merged_disease_df$drug_sig==i,]
+  x<-merged_drugs_df_subset[merged_drugs_df_subset$regulation=="down",]$NES - merged_drugs_df_subset[merged_drugs_df_subset$regulation=="up",]$NES
+  y<-merged_drugs_df_subset[merged_drugs_df_subset$regulation=="down",]
+  y$NES_delta<-x
+  list_nes_delta[[i]]<-y
+}
+
+drugs_delta_df <- Reduce(rbind, list_nes_delta)
+head(drugs_delta_df)
+
+nrow(drugs_delta_df)/5
+
+saveRDS(list_nes_delta,"20200528_list_nes_delta.RDS")
+
+saveRDS(drugs_delta_df,"20200528_drugs_delta_df.RDS")
+#drugs_delta_df<-readRDS("20200513_drugs_delta_df.RDS")
+
+
+set.seed(seed = 100)
+```
+
+
+# 6. Delta NES Analysis
+
+# -----------------------------
+
+# Figure 5c
+
+# -----------------------------
+
+## Delta NES Clustering Heatmap
+
+```{r,fig.height=6,fig.width=7}
+input<-drugs_delta_df
+input <- as.data.frame(input)
+colnames(input)
+input<-input[,c("comparison","drug_sig","NES_delta")]
+input<-spread(input,comparison,NES_delta)
+
+input$drug_sig <- str_replace_all(input$drug_sig, pattern = "%20", replacement = "_")
+input$drug_sig <- str_replace_all(input$drug_sig, pattern = "-", replacement = "_")
+input <- input[!duplicated(tolower(input$drug_sig)),] # von 70846 auf 62897
+rownames(input)<-input$drug_sig
+input$drug_sig<-NULL
+
+set.seed(1800)
+Heatmap_delta_sig_clusters_new<-pheatmap(input[,c(2,3,5,1,4)],
+                                     cluster_rows = T,
+                                     cluster_cols = F,
+                                     kmeans_k = 40,
+                                     show_rownames = T,
+                                     color = rev(RColorBrewer::brewer.pal(n =10, name = "RdBu")),
+                                     scale = "none",
+                                     breaks = breaksList, 
+                                     border_color = "black")
+
+# clusters 5 (severe only) and 13 (all) are interesting!
+```
+
+## Getting Each Cluster
+
+```{r}
+input.clust <- cbind(input, 
+                     cluster = Heatmap_delta_sig_clusters_new$kmeans$cluster)
+input.clust<-as.data.frame(input.clust)
+rownames(input.clust)<-rownames(input)
+
+input.clust$drug_sig<-rownames(input.clust)
+
+data_bank_list_filtered$drug_sig <- str_replace_all(data_bank_list_filtered$drug_sig, 
+                                                    pattern = "%20", 
+                                                    replacement = "_")
+data_bank_list_filtered$drug_sig <- str_replace_all(data_bank_list_filtered$drug_sig, pattern = "-", replacement = "_")
+
+data_bank_list_filtered <- data_bank_list_filtered[!duplicated(tolower(data_bank_list_filtered$drug_sig)),] # von 70846 auf 64254
+
+merged_df<-merge(input.clust,
+                 data_bank_list_filtered,
+                 by="drug_sig")
+
+for (i in unique(merged_df$cluster)){
+  tmp <- merged_df[merged_df$cluster == i,]
+  assign(x = paste0("cluster_",i), value = tmp)
+}
+```
+
+
+# 7. Inspection of Cluster 5 (group severe only)
+
+# -----------------------------
+
+# Figure 5d
+
+# -----------------------------
+
+
+## Heatmap of Cluster 5 Zoom
+
+```{r,fig.height=30,fig.width=15}
+
+rownames(cluster_5)<-cluster_5$drug_sig
+subset_cluster_5<-cluster_5
+
+subset_cluster_5<-subset_cluster_5[order(subset_cluster_5$`2_VS_3`,decreasing =T),]
+
+subset_cluster_5$drug <- str_replace_all(subset_cluster_5$drug, 
+                                                    pattern = "%20", 
+                                                    replacement = "_")
+subset_cluster_5$drug <- str_replace_all(subset_cluster_5$drug, 
+                                                    pattern = "-", 
+                                                    replacement = "_")
+subset_cluster_5<-subset_cluster_5[!duplicated(tolower(subset_cluster_5$drug) ),] 
+
+subset_cluster_5<-as.data.frame(subset_cluster_5)
+rownames(subset_cluster_5)<-subset_cluster_5$drug_sig
+subset_cluster_5<-subset_cluster_5[,c(2:6,29)]
+
+
+pheatmap(subset_cluster_5[,c(2,3,5,1,4)],
+         cluster_rows = F,
+         cluster_cols = F,
+         show_rownames = T,
+         color = rev(RColorBrewer::brewer.pal(n =10, name = "RdBu")),
+         scale = "none",
+         breaks = breaksList, 
+         border_color = "black")
+
+subset_cluster_5$drug_sig <- row.names(subset_cluster_5)
+subset_cluster_5 <- subset_cluster_5[,c(7,2,3,5,1,4,6)]
+
+openxlsx::write.xlsx(subset_cluster_5, file = "20200605 Cluster 5 zoom.xlsx")
+
+```
+
+## Frequency Genes Leading Edge
+
+### Get signatures for these signatures
+
+```{r,fig.height=20,fig.width=20 fig.width=20, message=FALSE, warning=FALSE, r,fig.height=20}
+unique_sigs<-rownames(subset_cluster_5)
+unique_sigs_down<-paste(unique_sigs,"_down",sep="")
+```
+
+### Leading edges (only 2_vs_3)
+
+```{r, fig.height=7, fig.width=6}
+cluster_5_leading_edge_down<-merged_disease_df[merged_disease_df$drug_sig%in%unique_sigs&merged_disease_df$regulation=="down",]
+
+cluster_5_leading_edge_down_genes <- vector()
+
+for (i in unique(cluster_5_leading_edge_down$drug_sig)){
+  tmp <- cluster_5_leading_edge_down[cluster_5_leading_edge_down$drug_sig == i&cluster_5_leading_edge_down$comparison=="2_VS_3", ]
+  l_edge <- unlist(tmp$leadingEdge)
+  l_edge <- unique(l_edge)
+  cluster_5_leading_edge_down_genes <- c(cluster_5_leading_edge_down_genes, l_edge)
+}
+
+frequency_target_5<-as.data.frame(table(cluster_5_leading_edge_down_genes))
+frequency_target_5<-frequency_target_5[order(frequency_target_5$Freq,decreasing = T),]
+
+frequency_target_5$cluster_5_leading_edge_down_genes <- factor(frequency_target_5$cluster_5_leading_edge_down_genes,                                      levels=unique(frequency_target_5$cluster_5_leading_edge_down_genes))
+
+frequency_target_5_top_50<-frequency_target_5[frequency_target_5$cluster_5_leading_edge_down_genes[1:50],]
+frequency_target_5_top_500<-frequency_target_5[frequency_target_5$cluster_5_leading_edge_down_genes[1:500],]
+
+write.csv(frequency_target_5_top_500, file = "20200611 IPA Cluster 5 leading edge genes top 500.csv")
+write.csv(frequency_target_5_top_50, file = "20200611 IPA Cluster 5 leading edge genes top 50.csv")
+
+
+ggplot(data=frequency_target_5_top_50, 
+       aes(x=cluster_5_leading_edge_down_genes, y=Freq)) +
+    geom_bar(stat="identity",data =  frequency_target_5_top_50, aes(fill = cluster_5_leading_edge_down_genes), color = "black")+
+    scale_fill_manual(values = rev(colorRampPalette(brewer.pal(8, "Reds"))(50))) +
+  scale_x_discrete(limits = rev(unique(sort(frequency_target_5_top_50$cluster_5_leading_edge_down_genes))))+
+    ggtitle("Most frequent leading edge down only 2 vs 3")+   
+    theme_linedraw()+
+    theme(panel.grid.major = element_line("white"),
+          panel.grid.minor = element_line("white"),
+          axis.text.x = element_text(size = 12),
+          legend.position = "none",
+          axis.title.y = element_text( size = 14),
+          axis.text.y = element_text( size = 10),
+          axis.title.x = element_text( size = 14))+
+coord_flip()
+
+
+ggplot(data=frequency_target_5_top_50, 
+       aes(x=cluster_5_leading_edge_down_genes, y=Freq)) +
+    geom_bar(stat="identity",data =  frequency_target_5_top_50, aes(fill = cluster_5_leading_edge_down_genes), color = "black")+
+    scale_fill_manual(values = rev(colorRampPalette(brewer.pal(8, "Reds"))(50))) +
+    ggtitle("Most frequent leading edge down")+   
+    theme_linedraw()+
+    theme(panel.grid.major = element_line("white"),
+          panel.grid.minor = element_line("white"),
+          axis.text.x = element_text(size = 12, angle = 90, hjust = 1),
+          legend.position = "none",
+          axis.title.y = element_text( size = 14),
+          axis.text.y = element_text( size = 10),
+          axis.title.x = element_text( size = 14))
+
+openxlsx::write.xlsx(frequency_target_5_top_50, file = "20200605 Cluster 5 leading edge genes cluster 2_vs_3.xlsx")
+
+cocena_genes <- c("UBE2L6", "IL1B", "CTSD", "STX4", "TBXA2R", "NIT1", "ZFP36", "PRKACA","MVP", "SHC1", "NR1H2", "RFNG", "PLEKHM1", "TIMP2", "IL4R","MKNK1", "PTK2B", "CDKN1A", "RTN2", "IGF2R", "ALAS1", "MYL9", "GNA15", "CD44", "IFNAR1", "IQGAP1", "GADD45A", "EXT1","TSC22D3", "IL13RA1", "GRB10", "TRIB1", "NFE2L2", "ATP11B")
+
+frequency_target_5_top_50_sub <- frequency_target_5_top_50[frequency_target_5_top_50$cluster_5_leading_edge_down_genes %in% cocena_genes,]
+
+frequency_target_5_top_50_sub <- frequency_target_5_top_50_sub[order(frequency_target_5_top_50_sub$Freq, decreasing = T),]
+
+#frequency_target_5_top_50_sub$color <- rev(colorRampPalette(brewer.pal(8, "Reds"))(32))
+
+
+frequency_target_5_top_50_sub$cluster_5_leading_edge_down_genes <- factor(frequency_target_5_top_50_sub$cluster_5_leading_edge_down_genes,                                      levels=cocena_genes)
+
+frequency_target_5_top_50_sub$color <- rev(colorRampPalette(brewer.pal(8, "Reds"))(nrow(frequency_target_5_top_50_sub)))
+
+
+colors <- as.list(frequency_target_5_top_50_sub$color)
+names(colors) <- frequency_target_5_top_50_sub$cluster_5_leading_edge_down_genes
+
+
+ggplot(data=frequency_target_5_top_50_sub, 
+       aes(x=cluster_5_leading_edge_down_genes, y=Freq)) +
+    geom_bar(stat="identity",data =  frequency_target_5_top_50_sub, aes(fill = cluster_5_leading_edge_down_genes), color = "black")+
+    scale_fill_manual(values = colors) +
+  scale_x_discrete(limits = rev(unique(sort(frequency_target_5_top_50_sub$cluster_5_leading_edge_down_genes))))+
+    ggtitle("Most frequent leading edge down")+   
+    theme_linedraw()+
+    theme(panel.grid.major = element_line("white"),
+          panel.grid.minor = element_line("white"),
+          axis.text.x = element_text(size = 12),
+          legend.position = "none",
+          axis.title.y = element_text( size = 14),
+          axis.text.y = element_text( size = 10),
+          axis.title.x = element_text( size = 14))+
+coord_flip()
+
+
+```
+
+
+## Get Leading Edge Genes Hormones Cluster 5
+
+```{r}
+horomone_5_leading_edge_down<-merged_disease_df[merged_disease_df$drug_sig %in% c("alpha_estradiol_LINCSCP_310233",
+                                                                                 "estradiol_cypionate_LINCSCP_35942",
+                                                                                 "estriol_LINCSCP_35942",                                                                                "chlormadinone_acetate_LINCSCP_104102",
+                                                                                "diethylstilbestrol_DM_541") & merged_disease_df$regulation == "down",]
+
+horomone_5_leading_edge_down_genes <- vector()
+
+for (i in unique(horomone_5_leading_edge_down$drug_sig)){
+    tmp <- horomone_5_leading_edge_down[horomone_5_leading_edge_down$drug_sig == i&horomone_5_leading_edge_down$comparison=="2_VS_3", ]
+  l_edge <- unlist(tmp$leadingEdge)
+  l_edge <- unique(l_edge)
+  horomone_5_leading_edge_down_genes <- c(horomone_5_leading_edge_down_genes, l_edge)
+}
+
+
+frequency_target_hormone<-as.data.frame(table(horomone_5_leading_edge_down_genes))
+frequency_target_hormone<-frequency_target_hormone[order(frequency_target_hormone$Freq,decreasing = T),]
+
+frequency_target_hormone$horomone_5_leading_edge_down_genes <- factor(frequency_target_hormone$horomone_5_leading_edge_down_genes,                                      levels=unique(frequency_target_hormone$horomone_5_leading_edge_down_genes))
+
+frequency_target_hormone_top_500<-frequency_target_hormone[frequency_target_hormone$horomone_5_leading_edge_down_genes[1:500],]
+
+write.csv(frequency_target_hormone_top_500, file = "20200611 IPA Hormones CLuster 5.csv")
+
+horomone_5_leading_edge_down_genes
+horomone_5_leading_edge_down_genes <- unique(horomone_5_leading_edge_down_genes)
+
+write.csv(horomone_5_leading_edge_down_genes, file = "20200611 IPA genes hormones cluster 5.csv")
+```
+
+
+# 8. Inspection of Cluster 13 (group all)
+
+
+# -----------------------------
+
+# Figure 5f
+
+# -----------------------------
+
+## Heatmap of Cluster 13 Zoom
+
+```{r,fig.height=30,fig.width=15}
+
+rownames(cluster_13)<-cluster_13$drug_sig
+subset_cluster_13<-cluster_13
+
+subset_cluster_13<-subset_cluster_13[order(subset_cluster_13$`2_VS_3`,decreasing =T),]
+
+# only select each drug once so they are not duplicated (several signatures possible with the same drug)
+subset_cluster_13$drug <- str_replace_all(subset_cluster_13$drug, 
+                                                    pattern = "%20", 
+                                                    replacement = "_")
+subset_cluster_13$drug <- str_replace_all(subset_cluster_13$drug, 
+                                                    pattern = "-", 
+                                                    replacement = "_")
+subset_cluster_13<-subset_cluster_13[!duplicated(tolower(subset_cluster_13$drug) ),] # from 165 to 102
+
+subset_cluster_13<-as.data.frame(subset_cluster_13)
+rownames(subset_cluster_13)<-subset_cluster_13$drug_sig
+subset_cluster_13<-subset_cluster_13[,c(2:6,29)]
+
+
+pheatmap(subset_cluster_13[,c(2,3,5,1,4)],
+         cluster_rows = F,
+         cluster_cols = F,
+         show_rownames = T,
+         color = rev(RColorBrewer::brewer.pal(n =10, name = "RdBu")),
+         scale = "none",
+         breaks = breaksList, 
+         border_color = "black")
+
+subset_cluster_13$drug_sig <- row.names(subset_cluster_13)
+subset_cluster_13 <- subset_cluster_13[,c(7,2,3,5,1,4,6)]
+
+#openxlsx::write.xlsx(subset_cluster_13, file = "20200605 Cluster 13 zoom.xlsx")
+
+```
+
+## Frequency Genes Leading Edge
+
+### Get signatures for these signatures
+
+```{r,fig.height=20,fig.width=20 fig.width=20, message=FALSE, warning=FALSE, r,fig.height=20}
+unique_sigs<-rownames(subset_cluster_13)
+unique_sigs_down<-paste(unique_sigs,"_down",sep="")
+```
+
+### Leading edges (only cluster 2_vs_3)
+
+```{r, fig.height=7, fig.width=6}
+cluster_13_leading_edge_down<-merged_disease_df[merged_disease_df$drug_sig%in%unique_sigs&merged_disease_df$regulation=="down",]
+
+cluster_13_leading_edge_down_genes <- vector()
+
+for (i in unique(cluster_13_leading_edge_down$drug_sig)){
+  tmp <- cluster_13_leading_edge_down[cluster_13_leading_edge_down$drug_sig == i&cluster_13_leading_edge_down$comparison=="2_VS_3", ]
+  l_edge <- unlist(tmp$leadingEdge)
+  l_edge <- unique(l_edge)
+  cluster_13_leading_edge_down_genes <- c(cluster_13_leading_edge_down_genes, l_edge)
+}
+
+frequency_target_13<-as.data.frame(table(cluster_13_leading_edge_down_genes))
+frequency_target_13<-frequency_target_13[order(frequency_target_13$Freq,decreasing = T),]
+
+frequency_target_13$cluster_13_leading_edge_down_genes <- factor(frequency_target_13$cluster_13_leading_edge_down_genes,                                      levels=unique(frequency_target_13$cluster_13_leading_edge_down_genes))
+
+frequency_target_13_top_50<-frequency_target_13[frequency_target_13$cluster_13_leading_edge_down_genes[1:50],]
+frequency_target_13_top_500<-frequency_target_13[frequency_target_13$cluster_13_leading_edge_down_genes[1:500],]
+
+write.csv(frequency_target_13_top_500, file = "20200611 IPA Cluster 13 leading edge genes top 500.csv")
+write.csv(frequency_target_13_top_50, file = "20200611 IPA Cluster 13 leading edge genes top 50.csv")
+
+ggplot(data=frequency_target_13_top_50, 
+       aes(x=cluster_13_leading_edge_down_genes, y=Freq)) +
+    geom_bar(stat="identity",data =  frequency_target_13_top_50, aes(fill = cluster_13_leading_edge_down_genes), color = "black")+
+    scale_fill_manual(values = rev(colorRampPalette(brewer.pal(8, "Reds"))(50))) +
+  scale_x_discrete(limits = rev(unique(sort(frequency_target_13_top_50$cluster_13_leading_edge_down_genes))))+
+    ggtitle("Most frequent leading edge down only 2_vs_3")+   
+    theme_linedraw()+
+    theme(panel.grid.major = element_line("white"),
+          panel.grid.minor = element_line("white"),
+          axis.text.x = element_text(size = 12),
+          legend.position = "none",
+          axis.title.y = element_text( size = 14),
+          axis.text.y = element_text( size = 10),
+          axis.title.x = element_text( size = 14))+
+coord_flip()
+
+
+ggplot(data=frequency_target_13_top_50, 
+       aes(x=cluster_13_leading_edge_down_genes, y=Freq)) +
+    geom_bar(stat="identity",data =  frequency_target_13_top_50, aes(fill = cluster_13_leading_edge_down_genes), color = "black")+
+    scale_fill_manual(values = rev(colorRampPalette(brewer.pal(8, "Reds"))(50))) +
+    ggtitle("Most frequent leading edge down")+   
+    theme_linedraw()+
+    theme(panel.grid.major = element_line("white"),
+          panel.grid.minor = element_line("white"),
+          axis.text.x = element_text(size = 12, angle = 90, hjust = 1),
+          legend.position = "none",
+          axis.title.y = element_text( size = 14),
+          axis.text.y = element_text( size = 10),
+          axis.title.x = element_text( size = 14))
+
+openxlsx::write.xlsx(frequency_target_13_top_50, file = "20200605 Cluster 13 leading edge genes only 2_vs_3.xlsx")
+
+
+cocena_genes <- c("PLAUR", "CMPK2", "TSPO", "S100A11", "S100A6","TCIRG1", "AZU1","CITED2", "MYADM", "PYCARD", "TNFRSF1", "MYO1F", "CST7","ACTN1", "CD300LF",  "HSPA1A","CEBPA", "GBGT1", "TIMP1", "CTBP2", "GNA15", "NDRG1","PYGL", "CEBPD", "SMIM3", "FCER1G", "RAB32", "RAB31", "SERPINB1", "LPCAT2", "TNFSF13B", "MNDA", "SRGN", "FLT3", "S100A8")
+
+frequency_target_13_top_50sub <- frequency_target_13_top_50[frequency_target_13_top_50$cluster_13_leading_edge_down_genes %in% cocena_genes,]
+
+frequency_target_13_top_50sub <- frequency_target_13_top_50sub[order(frequency_target_13_top_50sub$Freq, decreasing = T),]
+
+frequency_target_13_top_50sub$color <- rev(colorRampPalette(brewer.pal(8, "Reds"))(nrow(frequency_target_13_top_50sub)))
+
+
+frequency_target_13_top_50sub$cluster_13_leading_edge_down_genes <- factor(frequency_target_13_top_50sub$cluster_13_leading_edge_down_genes,                                      levels=cocena_genes)
+
+colors <- as.list(frequency_target_13_top_50sub$color)
+names(colors) <- frequency_target_13_top_50sub$cluster_13_leading_edge_down_genes
+
+
+ggplot(data=frequency_target_13_top_50sub, 
+       aes(x=cluster_13_leading_edge_down_genes, y=Freq)) +
+    geom_bar(stat="identity",data =  frequency_target_13_top_50sub, aes(fill = cluster_13_leading_edge_down_genes), color = "black")+
+    scale_fill_manual(values = colors) +
+  scale_x_discrete(limits = rev(unique(sort(frequency_target_13_top_50sub$cluster_13_leading_edge_down_genes))))+
+    ggtitle("Most frequent leading edge down")+   
+    theme_linedraw()+
+    theme(panel.grid.major = element_line("white"),
+          panel.grid.minor = element_line("white"),
+          axis.text.x = element_text(size = 12),
+          legend.position = "none",
+          axis.title.y = element_text( size = 14),
+          axis.text.y = element_text( size = 10),
+          axis.title.x = element_text( size = 14))+
+coord_flip()
+
+
+```
+
+# 9. write csvs
+
+```{r}
+write.csv(subset_cluster_5, file = "20200604_subset_cluster_2.csv")
+write.csv(subset_cluster_15, file = "20200604_subset_cluster_24.csv")
+write.csv(merged_df, file = "20200604_delta_NES_all.csv")
+```
+
+

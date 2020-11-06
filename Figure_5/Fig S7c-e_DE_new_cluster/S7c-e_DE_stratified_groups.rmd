@@ -1,0 +1,525 @@
+---
+title: "DESeq2 Analysis of stratified groups - Supplementary Figure 7C-E"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: 
+  html_document: 
+    toc: true
+    toc_float: true
+---
+
+# 1. R requirements
+
+## Install and load packages
+
+First, we install all necessary CRAN and Bioconductor packages and load them into the R session.
+
+### Install CRAN
+```{r}
+# CRAN packages
+list.of.packages <- c("tidyr",
+                      "ggplot2",
+                      "ggrepel",
+                      "gplots",
+                      "ggbeeswarm",
+                      "hexbin",
+                      "reshape2",
+                      "factoextra",
+                      "Hmisc",
+                      "VennDiagram",
+                      "openxlsx")
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+
+if(length(new.packages)>0) install.packages(new.packages)
+```
+
+### Install BioConductor
+```{r}
+# BioconductoR packages
+list.of.bioc.packages<- c("rhdf5",
+                          "clusterProfiler",
+                          "DOSE",
+                          "GSEABase",
+                          "RColorBrewer",
+                          "ComplexHeatmap",
+                          "tximport",
+                          "DESeq2",
+                          "vsn",
+                          "pheatmap",
+                          "genefilter",
+                          "biomaRt",
+                          "limma",
+                          "sva",
+                          "IHW",
+                          "org.Mm.eg.db",
+                          "org.Hs.eg.db",
+                          "ggpubr")
+
+new.packages.bioc <- list.of.bioc.packages[!(list.of.bioc.packages %in% installed.packages()[,"Package"])]
+ 
+if(length(new.packages.bioc)>0)if (!requireNamespace("BiocManager")) install.packages("BiocManager")
+BiocManager::install(new.packages.bioc, update = FALSE)
+```
+
+### Load Packages
+```{r load packages, results='hide',message=FALSE,warning=FALSE}
+lapply(c(list.of.packages,list.of.bioc.packages), require, character.only = TRUE)
+```
+
+# 2.Functions
+
+## DESeq2 output
+```{r}
+# # Specify structure of DESeq2_analysis_object
+# setClass(Class = "DESeq2_analysis_object",
+#          slots = c(results="data.frame", DE_genes="list", Number_DE_genes="list"))
+# 
+# 
+# # Wrapper Function to perform DESeq2 differential testing
+# DEAnalysis <- function(condition,
+#                        alpha = 0.05, 
+#                        lfcThreshold = 0,
+#                        sigFC = 2, 
+#                        multiple_testing = "IHW",
+#                        shrinkage = TRUE,
+#                        shrinkType = "normal"){
+#   # create results_list  
+#   results_list <- list()
+#   # print parameters
+#   results_list$parameters <-list(multiple_testing = multiple_testing,
+#                                  p_value_threshold = alpha,
+#                                  log2_FC_threshold = lfcThreshold,
+#                                  shrinkage = shrinkage,
+#                                  shrinkage_type = shrinkType)
+#   # Run results() function on comparisons defined in comparison table
+#   for (i in 1:nrow(comparison_table)){
+#     # create DE_object
+#     DE_object <- new(Class = "DESeq2_analysis_object")
+#     # IHW
+#     if (multiple_testing=="IHW") {
+#       res_deseq_lfc <- results(dds,
+#                                contrast = c(condition,
+#                                             paste(comparison_table$comparison[i]),
+#                                             paste(comparison_table$control[i])),
+#                                lfcThreshold = lfcThreshold,
+#                                alpha = alpha,
+#                                filterFun = ihw,
+#                                altHypothesis = "greaterAbs")
+#       # Independent Filtering
+#     }else {
+#       res_deseq_lfc <- results(dds,
+#                                contrast = c(condition,
+#                                             paste(comparison_table$comparison[i]),
+#                                             paste(comparison_table$control[i])),
+#                                lfcThreshold = lfcThreshold,
+#                                alpha = alpha,
+#                                independentFiltering = TRUE,
+#                                altHypothesis = "greaterAbs",
+#                                pAdjustMethod= multiple_testing)
+#     }
+#     if(shrinkage == TRUE){
+#       res_deseq_lfc <- lfcShrink(dds, 
+#                                  contrast = c(condition,
+#                                               paste(comparison_table$comparison[i]),
+#                                               paste(comparison_table$control[i])),
+#                                  res=res_deseq_lfc,
+#                                  type = shrinkType)
+#     }
+#     res_deseq_lfc <- as.data.frame(res_deseq_lfc)
+#     # indicate significant DE genes  
+#     res_deseq_lfc$regulation <- ifelse(!is.na(res_deseq_lfc$padj)&
+#                                          res_deseq_lfc$padj <= alpha&
+#                                          res_deseq_lfc$log2FoldChange > log(sigFC,2),
+#                                        "up",
+#                                        ifelse(!is.na(res_deseq_lfc$padj)&
+#                                                 res_deseq_lfc$padj <= alpha&
+#                                                 res_deseq_lfc$log2FoldChange < -log(sigFC,2),
+#                                               "down",
+#                                               "n.s."))
+#     # add gene annotation to results table
+#     res_deseq_lfc$GENEID <- row.names(res_deseq_lfc) # ensembl-IDs as row names
+#     res_deseq_lfc <- merge(res_deseq_lfc, 
+#                            norm_anno[,c("GENEID", 
+#                                         "SYMBOL", 
+#                                         "GENETYPE",
+#                                         "DESCRIPTION",
+#                                         "CHR")], 
+#                            by = "GENEID") 
+#     row.names(res_deseq_lfc) <- res_deseq_lfc$GENEID
+#     res_deseq_lfc$comparison<-paste(comparison_table$comparison[i]," vs ",comparison_table$control[i],
+#                                     sep="")
+#     # re-order results table
+#     if (multiple_testing=="IHW") {
+#       res_deseq_lfc<-res_deseq_lfc[,c("GENEID",
+#                                      "SYMBOL",
+#                                      "GENETYPE",
+#                                      "DESCRIPTION",
+#                                      "CHR",
+#                                      "comparison",
+#                                      "regulation",
+#                                      "baseMean",
+#                                      "log2FoldChange",
+#                                      "lfcSE",
+#                                      "stat",
+#                                      "pvalue",
+#                                      "padj",
+#                                      "weight")]
+#     }else{
+#       res_deseq_lfc<-res_deseq_lfc[,c("GENEID",
+#                                       "SYMBOL",
+#                                       "GENETYPE",
+#                                       "DESCRIPTION",
+#                                       "CHR",
+#                                       "comparison",
+#                                       "regulation",
+#                                       "baseMean",
+#                                       "log2FoldChange",
+#                                       "lfcSE",
+#                                       "stat",
+#                                       "pvalue",
+#                                       "padj")]
+#     }
+#     # print result table
+#     DE_object@results <- res_deseq_lfc
+#     # print DE genes in seperate tables
+#     DE_object@DE_genes <- list(up_regulated_Genes = res_deseq_lfc[res_deseq_lfc$regulation =="up",],
+#                                down_regulated_Genes= res_deseq_lfc[res_deseq_lfc$regulation =="down",])
+#     # print the numbers of DE genes
+#     DE_object@Number_DE_genes <- list(up_regulated_Genes = nrow(DE_object@DE_genes$up_regulated_Genes),
+#                                       down_regulated_Genes= nrow(DE_object@DE_genes$down_regulated_Genes))
+#     # write DE_object into results_list
+#     results_list[[paste(comparison_table$comparison[i], "vs", comparison_table$control[i], sep="_")]] <- DE_object
+#   }
+#   return(results_list)
+# }
+```
+
+
+
+# 3. Differential expression analysis (Figure S7)
+
+re-naming of stratified groups was later adjusted in CorelDraw:
+G1: 2
+G2: 4
+G3: 6
+G4: 1
+G5: 5
+G6: 3
+
+## Change design to stratified groups
+
+```{r change design}
+# design(dds) <- ~ new_cluster
+# dds <- DESeq(dds)
+```
+
+## Define relevant comparisons
+
+```{r}
+# comparison_table<-data.frame(comparison = c("1","2","6","4","5","1","6","4","5"),
+#                               control = c("3","3","3","3","3","2","2","2","2"))
+```
+
+## Perform Differential Expression Testing
+```{r}
+# DEresults <- DEAnalysis(condition = "new_cluster",
+#                         alpha=0.05 ,
+#                         lfcThreshold= 0,
+#                         sigFC = 2,
+#                         multiple_testing="IHW",
+#                         shrinkage = TRUE,
+#                         shrinkType="normal")
+```
+
+# 3. Load environment
+```{r load envionment,message=FALSE,warning=FALSE}
+load("S7c-e_DE_new_cluster_input.RData")
+
+dir.create(file.path("output"), recursive = T)
+folder<-"output/"
+```
+
+# 4. Figures S7c-e
+
+## Summary of DE genes
+```{r summary DEGs}
+comparison_table<-data.frame(comparison = c("1","2","6","4","5","1","6","4","5"),
+                              control = c("3","3","3","3","3","2","2","2","2"))
+DEcounts <- NULL
+for(i in 1:nrow(comparison_table)){
+  tmp <- unlist(DEresults[[1+i]]@Number_DE_genes)
+  DEcounts <- rbind(DEcounts, tmp)
+}
+rownames(DEcounts) <- names(DEresults)[-1]
+
+DEcounts[1:5,]
+```
+
+## Union of DE genes
+```{r Union DEGs}
+uDEG <- function(comparisons){
+  uDEGs <- NULL
+  tmp <- DEresults[names(DEresults) %in% comparisons]
+  for(i in 1:length(comparisons)){
+    DEGs <- as.data.frame(tmp[[i]]@results[tmp[[i]]@results$regulation %in% c("up","down"),])
+    uDEGs <- unique(c(uDEGs, DEGs$GENEID))
+  }
+  uDEGs
+}
+
+#Union of DE genes (ENSG IDs)
+allDEgenes <- uDEG(comparisons=c("1_vs_3", "2_vs_3", "4_vs_3", "5_vs_3", "6_vs_3"))
+#Union of DE genes (symbols)
+allDEgenes_symbol <- norm_anno[norm_anno$GENEID %in% allDEgenes,]$SYMBOL
+```
+
+## Upset plot (Fig. S7C)
+```{r}
+de.genes<-list(c(DEresults$`1_vs_3`@DE_genes$up_regulated_Genes$GENEID, DEresults$`1_vs_3`@DE_genes$down_regulated_Genes$GENEID), 
+                  c(DEresults$`2_vs_3`@DE_genes$up_regulated_Genes$GENEID, DEresults$`2_vs_3`@DE_genes$down_regulated_Genes$GENEID),
+                  c(DEresults$`4_vs_3`@DE_genes$up_regulated_Genes$GENEID, DEresults$`4_vs_3`@DE_genes$down_regulated_Genes$GENEID), 
+                  c(DEresults$`5_vs_3`@DE_genes$up_regulated_Genes$GENEID, DEresults$`5_vs_3`@DE_genes$down_regulated_Genes$GENEID), 
+                  c(DEresults$`6_vs_3`@DE_genes$up_regulated_Genes$GENEID, DEresults$`6_vs_3`@DE_genes$down_regulated_Genes$GENEID))
+
+names(de.genes)<-c("1_vs_3", "2_vs_3", "4_vs_3", "5_vs_3", "6_vs_3")
+```
+
+```{r upset plot, fig.width=8}
+#install.packages("UpSetR")
+require(UpSetR)
+p1<-upset(fromList(de.genes),  order.by = c("degree"), nintersects = NA, matrix.dot.alpha = 0.1, point.size = 1, line.size = 0.3, show.number = "yes", text.scale = 1.3)
+
+p1
+#save as pdf
+# cairo_pdf(filename = paste(folder,"DEupset_plot.pdf",sep = ""), width = 8, height = 6)
+# p1
+# dev.off()
+```
+
+## GSEA across comparisons
+
+Define universe and gene sets for subsequent GSEA analyses.
+```{r}
+# define universe
+universe <- as.character(norm_anno$SYMBOL)
+# change symbols to ENTREZ IDs 
+universe_Entrez <- bitr(universe, 
+                        fromType="SYMBOL", 
+                        toType="ENTREZID", 
+                        OrgDb="org.Hs.eg.db")$ENTREZID
+```
+
+Define function
+```{r}
+compareGSEA_up <- function(comparisons, 
+                        organism, # chose organism
+                        GeneSets =c("GO"),
+                        ontology= "BP", # define GO subset
+                        pCorrection = "bonferroni", # choose the p-value adjustment method
+                        pvalueCutoff = 0.05, # set the unadj. or adj. p-value cutoff (depending on correction method)
+                        qvalueCutoff = 0.05, # set the q-value cutoff (FDR corrected)
+                        showMax = 20){
+  
+  if(organism == "mouse") {
+    OrgDb = org.Mm.eg.db
+  } else if(organism == "human"){
+      OrgDb = org.Hs.eg.db
+    } else {stop("Wrong Organism. Select mouse or human.")}
+  
+  ENTREZlist <-  list()
+  for(i in 1:length(comparisons)){
+    res <- DEresults[names(DEresults) %in% comparisons]
+    DE_up <- as.data.frame(res[[i]]@DE_genes$up_regulated_Genes)$SYMBOL
+    entrez_up <- bitr(DE_up, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID
+    x <- setNames(list(entrez_up),
+                  c(paste(names(res[i]),"_up",sep="")))
+    ENTREZlist <- c(ENTREZlist,x)
+  }
+  
+  list <- list()
+  
+  # Compare the Clusters regarding their GO enrichment  
+  if("GO" %in% GeneSets){
+    print("Performing GO enrichment")
+    CompareClusters_GO <- compareCluster(geneCluster = ENTREZlist, 
+                                       fun = "enrichGO",  
+                                       universe = universe_Entrez,
+                                       OrgDb = OrgDb,
+                                       ont = ontology, 
+                                       pvalueCutoff  = pvalueCutoff, 
+                                       pAdjustMethod = pCorrection, 
+                                       qvalueCutoff  = pvalueCutoff,  
+                                       readable      = T)
+    list$GOresults <- as.data.frame(CompareClusters_GO)
+    list$GOplot <- clusterProfiler::dotplot(CompareClusters_GO, showCategory = showMax, by = "geneRatio", font.size=10)
+  }
+  
+  list
+}
+
+
+```
+
+Perform enrichment
+```{r, fig.width=10}
+DEcompare_up <- compareGSEA_up(comparisons = c("1_vs_3", "2_vs_3", "4_vs_3", "5_vs_3", "6_vs_3"),
+                         organism = "human",
+                         GeneSets = c("GO"),
+                         pCorrection = "BH",
+                         pvalueCutoff = 0.05,
+                         qvalueCutoff = 0.05,
+                         showMax = 10,
+                         ontology = "BP")
+
+DEcompare_up$GOplot
+```
+
+## Plot GSEA across comparisons (Fig.S7D) 
+
+Add term ratio as color code
+```{r GOEA plot, fig.height=5.5, fig.width=8,message=FALSE,warning=FALSE}
+library(scales)
+
+# add "TermRatio": ratio of DE genes matching a GO term and all genes assigned to a term. 
+tmp<-DEcompare_up$GOplot$data
+tmp<-separate(tmp, "BgRatio", c("set_size", "allgenes"),sep = "/",remove = F)
+tmp$set_size<- as.numeric(tmp$set_size)
+tmp$TermRatio<-tmp$Count/(tmp$set_size)
+
+#re-order: G1, G2, G3, G4, G5 
+tmp$Cluster<-factor(tmp$Cluster, levels=c("2_vs_3_up\n(2556)", "4_vs_3_up\n(1411)","6_vs_3_up\n(813)", "1_vs_3_up\n(530)", "5_vs_3_up\n(763)"))
+
+# plot enrichment
+p2<-ggplot(data =tmp ,aes( x=Cluster, y=Description, size=GeneRatio , fill=TermRatio)) +
+  geom_point(aes(fill=TermRatio),color=c("gray"),pch=21)+theme_classic()+
+  ggtitle("GOEA across comparisons")+
+  theme(axis.text.y = element_text(color = "black"),
+        axis.text.x = element_text(angle=30, hjust=1, color = "black"))+
+  scale_fill_gradientn(colors = c("#FFE5CC", "#FF8000"),values = rescale(c(0.1, 0.5)))
+
+p2
+#save as pdf
+# cairo_pdf(filename = paste(folder, "GOEA_compareDE_up.pdf", sep=""), width=7, height=5.5)
+# p2
+# dev.off()
+
+```
+
+## Boxplots (Fig.S7E)
+```{r boxplots, fig.width=3.5, fig.height=4.5}
+library(ggsci)
+
+genes<- c("CXCR2","C5AR1")
+
+# test for DE
+genes<-genes[genes %in% allDEgenes_symbol]
+
+#get normalized expression 
+tmp<-norm_anno[norm_anno$SYMBOL %in% genes,]
+rownames(tmp)<-tmp$SYMBOL
+
+tmp<-tmp[, !colnames(tmp) %in% c("GENEID", "GENETYPE", "SYMBOL", "DESCRIPTION","CHR")]
+tmp<- as.data.frame(t(tmp))
+idx<-match(rownames(tmp), sample_table$ID)
+tmp$cluster<- sample_table$new_cluster[idx] 
+tmp$cluster<-factor(tmp$cluster, levels = c(2,4,6,1,5,3))
+tmp$ID<-rownames(tmp)
+
+tmp<-reshape2::melt(tmp,id.vars=c("ID", "cluster"))
+tmp$variable<-factor(tmp$variable, levels = c("CXCR2","C5AR1"))
+
+# plot boxplots
+p3<-ggplot(tmp, aes(x=cluster, y=value))+
+  facet_wrap(.~variable, scales = "free", ncol=1)+
+  geom_boxplot(aes(color=cluster), outlier.alpha = 0)+
+  geom_beeswarm(cex = 1.5, size=0.8)+
+  scale_color_nejm()+
+  theme_bw()+
+  theme(legend.position = "none")+
+  ylab("normalized expression")
+
+p3
+#save as pdf
+# cairo_pdf(filename = paste(folder, "boxplot_CXCR2_C5AR.pdf", sep=""), width = 3.5, height = 6)
+# p3
+# dev.off()
+```
+
+## Generate DEG lists for Supplementary Tables
+```{r supplementary table}
+# load genes in Cocena network
+cocena_model<- read.table("network_modules.txt", sep="\t", header = T)
+colnames(cocena_model)<-c("CoCena_module","gene_n")
+# create Workbook
+ExcelOutput<-createWorkbook()
+
+# add sample table
+# sheet <- addWorksheet(ExcelOutput, sheetName = "Samples")
+# writeDataTable(ExcelOutput, sheet, sample_table[-c(29)], withFilter=FALSE)
+
+
+# add additional gene annotation downloaded from biomart to norm_anno
+biomart <- read.delim("biomart_human_191220.txt", stringsAsFactors = FALSE)
+idx <- match(unlist(lapply(strsplit(norm_anno$GENEID, split = "[.]"), `[[`, 1)), biomart$Gene.stable.ID)
+norm_anno$DESCRIPTION <- biomart$Gene.description[idx]
+norm_anno$CHR <- biomart$Chromosome.scaffold.name[idx]
+
+# add normalized counts
+# tmp <- norm_anno
+# tmp <- merge(tmp,cocena_model,by.x = "SYMBOL",by.y="gene_n",all.x = T)
+# sheet <- addWorksheet(ExcelOutput, sheetName = "Normalized counts & Annotation")
+# writeDataTable(ExcelOutput, sheet, tmp, withFilter=FALSE)
+
+# add DE test parameters
+# tmp <- stack(unlist(DEresults$parameters))
+# colnames(tmp)<-c("value","parameter")
+# tmp <- rbind(tmp, data.frame(value = as.character(design(dds))[2], parameter = "design"))
+# sheet <- addWorksheet(ExcelOutput, sheetName = "DE parameters")
+# writeDataTable(ExcelOutput, sheet, tmp, withFilter=FALSE)
+
+# add DE results in single sheets
+for(i in c(2:6)){
+  gc()
+  
+  name_to_use<-ifelse(names(DEresults[i])=="1_vs_3", "G4_vs_G6",
+                ifelse(names(DEresults[i])=="2_vs_3", "G1_vs_G6",
+                ifelse(names(DEresults[i])=="6_vs_3", "G3_vs_G6",
+                ifelse(names(DEresults[i])=="4_vs_3", "G2_vs_G6",
+                ifelse(names(DEresults[i])=="5_vs_3", "G5_vs_G6","error")))))
+  
+ # add up DEGs for each comparison
+ df<- merge(DEresults[[i]]@DE_genes$up_regulated_Genes,cocena_model,by.x = "SYMBOL",by.y="gene_n",all.x = T)
+ df$comparison<-name_to_use
+ df<-df[order(df$log2FoldChange, decreasing = T),]
+ 
+ idx<-match(df$GENEID, norm_anno$GENEID)
+ df$DESCRIPTION<-norm_anno$DESCRIPTION[idx]
+ df$CHR<-norm_anno$CHR[idx]
+ 
+ sheet <- addWorksheet(ExcelOutput, sheetName = paste(name_to_use, "_upDEGs", sep=""))
+ writeDataTable(ExcelOutput, sheet, df, withFilter=FALSE)
+  
+ # add down DEGs for each comparison
+ df<- merge(DEresults[[i]]@DE_genes$down_regulated_Genes,cocena_model,by.x = "SYMBOL",by.y="gene_n",all.x = T)
+ df$comparison<-name_to_use
+ df<-df[order(df$log2FoldChange, decreasing = F),]
+ 
+ idx<-match(df$GENEID, norm_anno$GENEID)
+ df$DESCRIPTION<-norm_anno$DESCRIPTION[idx]
+ df$CHR<-norm_anno$CHR[idx]
+ 
+ sheet <- addWorksheet(ExcelOutput, sheetName = paste(name_to_use, "_downDEGs", sep=""))
+ writeDataTable(ExcelOutput, sheet, df, withFilter=FALSE)
+
+  }
+
+# Save Workbook
+filename <- paste(folder, "DEGs_stratified_groups",gsub(":","-",as.character(Sys.time())),".xlsx",sep="")
+saveWorkbook(ExcelOutput, file=filename)
+
+```
+
+
+
+
+
