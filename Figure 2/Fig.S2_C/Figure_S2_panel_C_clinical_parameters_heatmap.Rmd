@@ -1,0 +1,94 @@
+---
+title: "Figure S2 panel H"
+author: "TP"
+date: "10/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. R Requirements
+```{r}
+library(pheatmap)
+```
+
+# 2. Load data
+## 2.1. Set directory and upload data
+```{r}
+dir<-setwd(dirname(rstudioapi::getSourceEditorContext()$path)) #set your directory here
+
+file_name<-"201015_final_sample_table.txt" #sample table file name here
+sample_table<-read.delim(file.path(dir,file_name),header=TRUE, stringsAsFactors = TRUE, sep="\t")
+
+head(sample_table)
+
+```
+
+
+# 3. Figure S1 panel H
+## Clusters heatmap clinical parameters 
+```{r}
+#for this part sample table should already include the cocena gfc clusters
+
+cohort<-sample_table[sample_table$status=="covid",]
+cohort$Immune_classification<-factor(cohort$Immune_classification, levels=c("MAS","Dysregulation","Intermediate"))
+
+
+clusters<-c(2,4,6,1,5,3)
+names(clusters)<-as.character (table(cohort$new_cluster)[1:(length(clusters))])
+
+par_parameters<-all_par[!all_par %in% c("status")]
+yn_col<-c("Intubated","diabetes2","Dyslipidemia","Hypothyroidism","Coronary_heart_disease","Chronic_renal_disease","Chronic_heart_failure","Hypertension")
+numeric_col<-c("Total.white.blood.cell.count...mm3." ,"Total.neutrophil.count...mm3." , "Total.lymphocyte.count...mm3.","age","SOFA","Charlson","PneumoniaIndex")
+
+#columns that are only relevant for clustering
+clinic_hm_df<-NULL
+clinic_hm_df<-as.data.frame(matrix(nrow=length(clusters), ncol=(length(par_parameters)),dimnames = list(c(paste0("G_",clusters,", N=",names(clusters))),c(par_parameters))))
+
+
+
+for (i in 1:length(clusters)){
+  cluster<-clusters[i]
+  cluster_df<-cohort[cohort$new_cluster==cluster,]
+  
+  for (j in 1:length(par_parameters)){
+    my_par<-par_parameters[j]
+    filtered_df<-cluster_df[complete.cases(cluster_df[my_par]),]
+    
+    if (my_par=="gender"){ #if parameter is gender calculate the percentage of males
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df$gender=="M",])*100/nrow(filtered_df)
+    } else if (my_par %in% yn_col){ #if parameter is yes/no column, meaning yes/no percentage of yes
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="Yes",])*100/nrow(filtered_df)
+    } else if (my_par=="Outcome"){ #In case of outcome calculate the percentage of death
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="Death",])*100/nrow(filtered_df)
+    }else if (my_par=="Immune_classification"){ #calculate dysregulation/MAS perc
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="MAS" | filtered_df[my_par]=="Dysregulation",])*100/nrow(filtered_df)
+    }else if (is.factor(filtered_df[[my_par]])==TRUE){
+        clinic_hm_df[i,my_par]<-mean(as.numeric(unfactor(filtered_df[[my_par]])))
+      } else if (is.factor(filtered_df[[my_par]])==FALSE) {
+         clinic_hm_df[i,my_par]<-mean(filtered_df[[my_par]])
+      }  
+    
+    
+  }
+}
+
+scaled_df<-scale(clinic_hm_df, center = T, scale = T)
+scaled_df<-t(scaled_df)
+#scaled_df<-scaled_df[,c(2,3,5,1,4)]
+
+
+pheatmap(scaled_df, 
+         cluster_rows = T,
+         cluster_cols = F,
+         show_rownames=T,
+         show_colnames = T,
+         cellheight = 14,
+         cellwidth = 20,
+         color= colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(seq(-2, 2, by = .1))), 
+         breaks= c(floor(-max(scaled_df, na.rm=T)), seq(-2, 2, 0.1),  ceiling(max(scaled_df, na.rm=T))))
+```
+
+

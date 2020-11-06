@@ -1,0 +1,17 @@
+---
+title: "lncRNA_Analysis"
+output: html_document
+---
+```{r}
+source(paste0(working_directory,"scripts/", "lincr.R"))
+lncTarget_table <- CreateTargetTable()
+
+enrichedLnc <- lincr(score = 0.5)
+
+lincr_stats_lightgreen <- lincr_stats_enrichLnc("lightgreen", enrichedLnc, corr_cut_off = 0.3)
+
+figure_2F()
+
+gene_expression_stats <- getStats()
+```
+
