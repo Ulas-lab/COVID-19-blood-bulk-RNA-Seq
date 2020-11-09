@@ -1,0 +1,2302 @@
+---
+title: "Code_for_figure_1"
+author: "Tal Pecht, Arik Horne, Ioanna Gemuend"
+date: "2020 - 10 - 29"
+output: 
+  html_document: 
+    toc: true
+    toc_float: true
+---
+###"Code_for_figure_1"
+
+### Install CRAN
+```{r}
+# CRAN packages
+list.of.packages <- c("tidyr",
+                      "ggplot2",
+                      "ggrepel",
+                      "gplots",
+                      "reshape2",
+                      "dplyr",
+                      "cluster",
+                      "factoextra",
+                      "mixOmics",
+                      "fpc",
+                      "viridis")
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+
+if(length(new.packages)>0) install.packages(new.packages)
+
+```
+
+```{r}
+# BioconductoR packages
+list.of.bioc.packages<- c("clusterProfiler",
+                          "GSEABase",
+                          "RColorBrewer",
+                          "ComplexHeatmap",
+                          "DESeq2",
+                          "pheatmap",
+                          "org.Hs.eg.db",
+                          "randomcoloR",
+                          "IHW")
+
+new.packages.bioc <- list.of.bioc.packages[!(list.of.bioc.packages %in% installed.packages()[,"Package"])]
+ 
+if(length(new.packages.bioc)>0)if (!requireNamespace("BiocManager")) install.packages("BiocManager")
+BiocManager::install(new.packages.bioc, update = FALSE)
+```
+
+
+```{r load packages, results='hide',message=FALSE,warning=FALSE}
+lapply(c(list.of.packages,list.of.bioc.packages), require, character.only = TRUE)
+```
+
+
+### Heatmap colors
+```{r}
+scaleColors <- function(data = input_scale, # data to use
+                        maxvalue = NULL # value at which the color is fully red / blue
+                        ){
+  if(is.null(maxvalue)){
+    maxvalue <- floor(min(abs(min(data)), max(data)))
+  }
+  if(max(data) > abs(min(data))){
+    if(ceiling(max(data)) == maxvalue){
+      myBreaks <- c(floor(-max(data)), seq(-maxvalue+0.2, maxvalue-0.2, 0.2),  ceiling(max(data)))
+    } else{
+      myBreaks <- c(floor(-max(data)), seq(-maxvalue, maxvalue, 0.2),  ceiling(max(data)))
+    }
+    paletteLength <- length(myBreaks)
+    myColor <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
+  } else {
+    if(-floor(min(data)) == maxvalue){
+      myBreaks <- c(floor(min(data)), seq(-maxvalue+0.2, maxvalue-0.2, 0.2),  ceiling(min(data)))
+    } else{
+      myBreaks <- c(floor(min(data)), seq(-maxvalue, maxvalue, 0.2),  ceiling(abs(min(data))))
+    }
+    paletteLength <- length(myBreaks)
+    myColor <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
+  }
+ return(list(breaks = myBreaks, color = myColor))
+}
+```
+
+### Heatmap
+```{r}
+plotHeatmap <- function(input=norm_anno,
+                        geneset="all",
+                    title="",
+                    keyType = "Ensembl",
+                    show_rownames = FALSE,
+                    cluster_cols = FALSE,
+                    font.size=7,
+                    max.value=2){
+  if(geneset[1] =="all"){
+    input <- input
+  }else{
+    if(keyType == "Ensembl"){
+      input <- input[input$GENEID %in% geneset,]
+    } else if(keyType == "Symbol"){
+      input <- input[input$SYMBOL %in% geneset,]
+    } else{
+      print("Wrong keyType. Choose Ensembl or Symbol!")
+    }
+  }
+  
+  #rownames(input) <- input$SYMBOL
+
+  rownames(input) <- paste(input$GENEID, ":", input$SYMBOL, sep="")
+  input <- input[,colnames(input) %in% sample_table$ID]
+  input_scale <- t(scale(t(input)))
+  input_scale <- input_scale[,order(sample_table[[plot_order]], decreasing = FALSE)]
+
+  pheatmap(input_scale,
+         main=title,
+         show_rownames=show_rownames,
+         show_colnames=TRUE,
+         cluster_cols = cluster_cols, 
+         fontsize = font.size,
+         annotation_col = plot_annotation,
+         annotation_colors = ann_colors,
+         breaks = scaleColors(data = input_scale, maxvalue = max.value)[["breaks"]], 
+         color = scaleColors(data = input_scale, maxvalue = max.value)[["color"]])
+}
+```
+
+
+
+
+### Heatmap of genes of specified gene sets
+```{r}
+plotGeneSetHeatmap <- function(input=norm_anno,
+                               cat,
+                               term,
+                               organism,
+                               show_rownames =TRUE, 
+                               cluster_cols = FALSE,
+                               font.size= 7,
+                               max.value=2){
+  if(organism == "mouse"){
+    GO <- GO_mm
+    KEGG <- KEGG_mm
+  } else if(organism == "human"){
+    GO <- GO_hs
+    KEGG <- KEGG_hs
+  } else (stop("Wrong organism specified!"))
+  
+  xterm <- paste("^", term, "$", sep="")
+  if(cat=="GO"){
+    genes <- unique(GO[grep(xterm,GO$TERM),"SYMBOL"])
+  }
+  if(cat=="KEGG"){
+    genes <- unique(KEGG[grep(xterm,KEGG$PATHWAY),"SYMBOL"])
+  }
+  if(cat=="Hallmark"){
+    genes <- unique(hallmark_genes[grep(xterm,hallmark_genes$ont),"gene"])
+  }
+  if(cat=="cannonicalPathways"){
+    genes <- unique(cannonicalPathway_genes[grep(xterm,cannonicalPathway_genes$ont),"gene"])
+  }
+  if(cat=="ImmunoSignatures"){
+    genes <- unique(immuno_genes[grep(xterm,immuno_genes$ont),"gene"])
+  }
+  if(cat=="Motifs"){
+    genes <- unique(motifs[grep(xterm,motifs$ont),"gene"])
+  }
+  if(organism == "mouse" & 
+     cat == "Hallmark"|
+     cat == "cannonicalPathways"| 
+     cat =="ImmunoSignatures"|
+     cat == "Motifs"){
+    genes <- getLDS(attributes = c("entrezgene"), 
+                    filters = "entrezgene", 
+                    values = genes, 
+                    mart = useMart("ensembl", dataset = "hsapiens_gene_ensembl"), 
+                    attributesL = c("mgi_symbol"), 
+                    martL = useMart("ensembl", dataset = "mmusculus_gene_ensembl"), 
+                    uniqueRows=T)[,2]
+  }
+  
+  plotHeatmap(input=input,geneset = genes,
+              keyType = "Symbol",
+              title = paste("Heatmap of present genes annotated to: ",term, sep=""),
+              show_rownames = show_rownames,
+              cluster_cols = cluster_cols,
+              font.size=font.size,
+              max.value=max.value)
+}
+```
+
+### PCA function
+```{r}
+plotPCA <- function(pca_input = dds_vst,
+                     ntop=500, 
+                     xPC=1, 
+                     yPC=2,
+                     color,
+                     anno_colour,
+                     shape="NULL",
+                     point_size=3,
+                     title="PCA", 
+                    label = NULL, 
+                    label_subset = NULL){
+  
+  if(!is.data.frame(pca_input)){
+  vst_matrix <-as.matrix(assay(pca_input))
+  }else{
+   vst_matrix <- pca_input
+  }
+  
+  if(ntop=="all"){
+    pca <- prcomp(t(vst_matrix)) 
+  }else{
+    # select the ntop genes by variance
+    select <- order(rowVars(vst_matrix), decreasing=TRUE)[c(1:ntop)]
+    pca <- prcomp(t(vst_matrix[select,]))
+  }
+  
+  #calculate explained variance per PC
+  explVar <- pca$sdev^2/sum(pca$sdev^2)
+  # transform variance to percent
+  percentVar <- round(100 * explVar[c(xPC,yPC)], digits=1)
+
+  # Define data for plotting  
+  pcaData <- data.frame(xPC=pca$x[,xPC], 
+                        yPC=pca$x[,yPC], 
+                        color = sample_table[[color]],
+                        name= as.character(sample_table$ID),
+                        stringsAsFactors = F)
+  
+  #plot PCA
+  if(is.factor(pcaData$color) || is.character(pcaData$color)|| is.integer(pcaData$color)){
+    if(shape == "NULL"){
+        pca_plot <- ggplot(pcaData, aes(x = xPC, y = yPC, colour=color)) +
+                          geom_point(size =point_size)
+      }else{
+        pcaData$shape = sample_table[[shape]]
+        pca_plot <- ggplot(pcaData, aes(x = xPC, y = yPC, colour=color, shape=shape)) +
+                          geom_point(size =point_size) +
+                          scale_shape_discrete(name=shape)
+      }
+    
+    if(anno_colour[1] == "NULL"){
+        pca_plot <- pca_plot + scale_color_discrete(name=color)
+    }else{
+        pca_plot <- pca_plot + scale_color_manual(values=anno_colour, name=color)
+    }
+    
+  }else if(is.numeric(pcaData$color)){
+      if(shape == "NULL"){
+        pca_plot <- ggplot(pcaData, aes(x = xPC, y = yPC, colour=color)) +
+          geom_point(size =point_size) +
+          scale_color_gradientn(colours = bluered(100),name=color)
+      }else{
+        pcaData$shape = sample_table[[shape]]
+        pca_plot <- ggplot(pcaData, aes(x = xPC, y = yPC, colour=color, shape=shape)) +
+          geom_point(size =point_size) +
+          scale_color_gradientn(colours = bluered(100),name=color)+
+          scale_shape_discrete(name=shape)
+      }
+  }
+
+# adds a label to the plot. To label only specific points, put them in the arument label_subset
+  if (!is.null(label) == TRUE){
+    pcaData$label <- sample_table[[label]]
+    if(!is.null(label_subset) == TRUE){
+    pcaData_labeled <- pcaData[pcaData$label %in% label_subset,]
+    } else {
+      pcaData_labeled <- pcaData
+    }
+      pca_plot <- pca_plot + 
+      geom_text_repel(data = pcaData_labeled, aes(label = label), nudge_x = 2, nudge_y = 2, colour = "black") 
+  }
+  
+    pca_plot <- pca_plot+
+    xlab(paste0("PC ",xPC, ": ", percentVar[1], "% variance")) +
+    ylab(paste0("PC ",yPC,": ", percentVar[2], "% variance")) +
+    coord_fixed()+
+    theme_classic()+        
+    theme(aspect.ratio = 1)+
+    ggtitle(title)
+  
+  pca_plot
+}
+```
+
+
+
+### DESeq2 output
+```{r}
+# Specify structure of DESeq2_analysis_object
+setClass(Class = "DESeq2_analysis_object",
+         slots = c(results="data.frame", DE_genes="list", Number_DE_genes="list"))
+
+
+# Wrapper Function to perform DESeq2 differential testing
+DEAnalysis <- function(condition,
+                       alpha = 0.05, 
+                       lfcThreshold = 0,
+                       sigFC = 2, 
+                       multiple_testing = "IHW",
+                       shrinkage = TRUE,
+                       shrinkType = "normal"){
+  # create results_list  
+  results_list <- list()
+  # print parameters
+  results_list$parameters <-list(multiple_testing = multiple_testing,
+                                 p_value_threshold = alpha,
+                                 log2_FC_threshold = lfcThreshold,
+                                 shrinkage = shrinkage,
+                                 shrinkage_type = shrinkType)
+  # Run results() function on comparisons defined in comparison table
+  for (i in 1:nrow(comparison_table)){
+    # create DE_object
+    DE_object <- new(Class = "DESeq2_analysis_object")
+    # IHW
+    if (multiple_testing=="IHW") {
+      res_deseq_lfc <- results(dds,
+                               contrast = c(condition,
+                                            paste(comparison_table$comparison[i]),
+                                            paste(comparison_table$control[i])),
+                               lfcThreshold = lfcThreshold,
+                               alpha = alpha,
+                               filterFun = ihw,
+                               altHypothesis = "greaterAbs")
+      # Independent Filtering
+    }else {
+      res_deseq_lfc <- results(dds,
+                               contrast = c(condition,
+                                            paste(comparison_table$comparison[i]),
+                                            paste(comparison_table$control[i])),
+                               lfcThreshold = lfcThreshold,
+                               alpha = alpha,
+                               independentFiltering = TRUE,
+                               altHypothesis = "greaterAbs",
+                               pAdjustMethod= multiple_testing)
+    }
+    if(shrinkage == TRUE){
+      res_deseq_lfc <- lfcShrink(dds, 
+                                 contrast = c(condition,
+                                              paste(comparison_table$comparison[i]),
+                                              paste(comparison_table$control[i])),
+                                 res=res_deseq_lfc,
+                                 type = shrinkType)
+    }
+    res_deseq_lfc <- as.data.frame(res_deseq_lfc)
+    # indicate significant DE genes  
+    res_deseq_lfc$regulation <- ifelse(!is.na(res_deseq_lfc$padj)&
+                                         res_deseq_lfc$padj <= alpha&
+                                         res_deseq_lfc$log2FoldChange > log(sigFC,2),
+                                       "up",
+                                       ifelse(!is.na(res_deseq_lfc$padj)&
+                                                res_deseq_lfc$padj <= alpha&
+                                                res_deseq_lfc$log2FoldChange < -log(sigFC,2),
+                                              "down",
+                                              "n.s."))
+    # add gene annotation to results table
+    res_deseq_lfc$GENEID <- row.names(res_deseq_lfc) # ensembl-IDs as row names
+    res_deseq_lfc <- merge(res_deseq_lfc, 
+                           norm_anno[,c("GENEID", 
+                                        "SYMBOL", 
+                                        "GENETYPE",
+                                        "DESCRIPTION",
+                                        "CHR")], 
+                           by = "GENEID") 
+    row.names(res_deseq_lfc) <- res_deseq_lfc$GENEID
+    res_deseq_lfc$comparison<-paste(comparison_table$comparison[i]," vs ",comparison_table$control[i],
+                                    sep="")
+    # re-order results table
+    if (multiple_testing=="IHW") {
+      res_deseq_lfc<-res_deseq_lfc[,c("GENEID",
+                                     "SYMBOL",
+                                     "GENETYPE",
+                                     "DESCRIPTION",
+                                     "CHR",
+                                     "comparison",
+                                     "regulation",
+                                     "baseMean",
+                                     "log2FoldChange",
+                                     "lfcSE",
+                                     "stat",
+                                     "pvalue",
+                                     "padj",
+                                     "weight")]
+    }else{
+      res_deseq_lfc<-res_deseq_lfc[,c("GENEID",
+                                      "SYMBOL",
+                                      "GENETYPE",
+                                      "DESCRIPTION",
+                                      "CHR",
+                                      "comparison",
+                                      "regulation",
+                                      "baseMean",
+                                      "log2FoldChange",
+                                      "lfcSE",
+                                      "stat",
+                                      "pvalue",
+                                      "padj")]
+    }
+    # print result table
+    DE_object@results <- res_deseq_lfc
+    # print DE genes in seperate tables
+    DE_object@DE_genes <- list(up_regulated_Genes = res_deseq_lfc[res_deseq_lfc$regulation =="up",],
+                               down_regulated_Genes= res_deseq_lfc[res_deseq_lfc$regulation =="down",])
+    # print the numbers of DE genes
+    DE_object@Number_DE_genes <- list(up_regulated_Genes = nrow(DE_object@DE_genes$up_regulated_Genes),
+                                      down_regulated_Genes= nrow(DE_object@DE_genes$down_regulated_Genes))
+    # write DE_object into results_list
+    results_list[[paste(comparison_table$comparison[i], "vs", comparison_table$control[i], sep="_")]] <- DE_object
+  }
+  return(results_list)
+}
+```
+
+
+
+
+### Union of DEgenes
+```{r}
+uDEG <- function(comparisons){
+  uDEGs <- NULL
+  tmp <- DEresults[names(DEresults) %in% comparisons]
+  for(i in 1:length(comparisons)){
+    DEGs <- as.data.frame(tmp[[i]]@results[tmp[[i]]@results$regulation %in% c("up","down"),])
+    uDEGs <- unique(c(uDEGs, DEGs$GENEID))
+  }
+  uDEGs
+}
+```
+
+```{r}
+compareGSEA <- function(comparisons, 
+                        organism, # chose organism
+                        GeneSets =c("GO","KEGG"), # choose gene sets for enrichment
+                        ontology= "BP", # define GO subset
+                        pCorrection = "bonferroni", # choose the p-value adjustment method
+                        pvalueCutoff = 0.05, # set the unadj. or adj. p-value cutoff (depending on correction method)
+                        qvalueCutoff = 0.05, # set the q-value cutoff (FDR corrected)
+                        showMax = 20){
+  
+  if(organism == "mouse") {
+    OrgDb = org.Mm.eg.db
+  } else if(organism == "human"){
+      OrgDb = org.Hs.eg.db
+    } else {stop("Wrong Organism. Select mouse or human.")}
+  
+  ENTREZlist <-  list()
+  for(i in 1:length(comparisons)){
+    res <- DEresults[names(DEresults) %in% comparisons]
+    DE_up <- as.data.frame(res[[i]]@DE_genes$up_regulated_Genes)$SYMBOL
+    entrez_up <- bitr(DE_up, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID
+    DE_down <- as.data.frame(res[[i]]@DE_genes$down_regulated_Genes)$SYMBOL
+    entrez_down <- bitr(DE_down, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID  
+    x <- setNames(list(entrez_up, entrez_down),
+                  c(paste(names(res[i]),"_up",sep=""), 
+                    paste(names(res[i]),"_down",sep="")))
+    ENTREZlist <- c(ENTREZlist,x)
+  }
+  
+  list <- list()
+  
+  # Compare the Clusters regarding their GO enrichment  
+  if("GO" %in% GeneSets){
+    print("Performing GO enrichment")
+    CompareClusters_GO <- compareCluster(geneCluster = ENTREZlist, 
+                                       fun = "enrichGO",  
+                                       universe = universe_Entrez,
+                                       OrgDb = OrgDb,
+                                       ont = ontology, 
+                                       pvalueCutoff  = pvalueCutoff, 
+                                       pAdjustMethod = pCorrection, 
+                                       qvalueCutoff  = pvalueCutoff,  
+                                       readable      = T)
+    list$GOresults <- as.data.frame(CompareClusters_GO)
+    list$GOplot <- clusterProfiler::dotplot(CompareClusters_GO, showCategory = showMax, by = "geneRatio", font.size=10)
+  }
+  
+  if("KEGG" %in% GeneSets){
+    print("Performing KEGG enrichment")
+    
+    if(organism == "mouse"){org = "mmu"} 
+    if(organism == "human"){org = "hsa"}
+    
+    # Compare the Clusters regarding their KEGG enrichment  
+    CompareClusters_KEGG <- compareCluster(geneCluster = ENTREZlist, 
+                                         fun = "enrichKEGG",  
+                                         universe = universe_Entrez,
+                                         organism = org, 
+                                         pvalueCutoff  = pvalueCutoff, 
+                                         pAdjustMethod = pCorrection, 
+                                         qvalueCutoff  = pvalueCutoff)
+    list$KEGGresults <- as.data.frame(CompareClusters_KEGG)
+    list$KEGGplot <- clusterProfiler::dotplot(CompareClusters_KEGG, showCategory = showMax, by = "geneRatio", font.size=10)
+  }
+  list
+}
+```
+
+### Volcano Plot
+```{r}
+plotVolcano <-  function(comparison,
+                         labelnum=20){
+    
+    # specify labeling    
+    upDE <-  as.data.frame(DEresults[[comparison]]@results[DEresults[[comparison]]@results$regulation =="up",]) 
+    FClabel_up <- upDE[order(abs(upDE$log2FoldChange), decreasing = TRUE),]
+    if(nrow(FClabel_up)>labelnum){
+      FClabel_up <- as.character(FClabel_up[c(1:labelnum),"GENEID"])
+    } else {
+        FClabel_up <- as.character(FClabel_up$GENEID)}
+    plabel_up <- upDE[order(upDE$padj, decreasing = FALSE),]
+    if(nrow(plabel_up)>labelnum){
+      plabel_up <- as.character(plabel_up[c(1:labelnum),"GENEID"])
+    } else {
+        plabel_up <- as.character(plabel_up$GENEID)}
+    
+    downDE <-  as.data.frame(DEresults[[comparison]]@results[DEresults[[comparison]]@results$regulation =="down",]) 
+    FClabel_down <- downDE[order(abs(downDE$log2FoldChange), decreasing = TRUE),]
+    if(nrow(FClabel_down)>labelnum){
+      FClabel_down <- as.character(FClabel_down[c(1:labelnum),"GENEID"])
+    } else {
+        FClabel_down <- as.character(FClabel_down$GENEID)}
+    plabel_down <- downDE[order(downDE$padj, decreasing = FALSE),]
+    if(nrow(plabel_down)>labelnum){
+      plabel_down <- as.character(plabel_down[c(1:labelnum),"GENEID"])
+    } else {
+        plabel_down <- as.character(plabel_down$GENEID)}
+    
+    
+    label<- unique(c(FClabel_up, plabel_up, FClabel_down, plabel_down))
+    
+    data <- DEresults[[comparison]]@results
+    data$label<- ifelse(data$GENEID %in% label == "TRUE",as.character(data$SYMBOL), "")
+    
+    library(gtools)
+    data$anti <- logratio2foldchange(data$log2FoldChange)
+    
+    # Volcano Plot
+    ggplot(data=data, aes(x=anti, y=-log10(padj), colour=regulation)) +
+      geom_point(alpha=0.4, size=1.75) +
+      scale_color_manual(values=c("cornflowerblue","grey", "firebrick"))+
+      scale_x_continuous() +
+      scale_y_continuous() +
+      coord_cartesian(xlim =c(-max(data$anti)-1, max(data$anti)+1)) + 
+      xlab("FoldChange") +
+      ylab("-log10(padj)") +
+      geom_vline(xintercept = 0, colour="black")+
+      geom_vline(xintercept = c(-2,2), colour="red")+
+      geom_hline(yintercept=-log(0.05,10),colour="red")+
+      geom_text_repel(data=data[!data$label =="",],aes(label=label), size=3)+
+      guides(colour=FALSE) + 
+      ggtitle(paste("Volcano Plot of: ",comparison,sep="")) +
+      theme_bw()
+}
+```
+
+### GSEA function
+```{r}
+GSEA <-  function(comparison,
+                   organism,
+                   GeneSets =c("GO","KEGG","DO","Hallmark","cannonicalPathways","Motifs","ImmunoSignatures"),
+                   GOntology = "BP",
+                   pCorrection = "bonferroni", # choose the p-value adjustment method
+                   pvalueCutoff = 0.05, # set the unadj. or adj. p-value cutoff (depending on correction method)
+                   qvalueCutoff = 0.05 # set the q-value cutoff (FDR corrected)
+){
+  
+  results <- list()
+  
+  if(organism == "mouse") {
+    OrgDb = org.Mm.eg.db
+  } else if(organism == "human"){
+    OrgDb = org.Hs.eg.db
+  } else {print("Wrong Organism. Select mouse or human.")}
+  
+  res <- DEresults[[comparison]]
+  DE_up <- as.data.frame(res@DE_genes$up_regulated_Genes)$SYMBOL
+  entrez_up <- bitr(DE_up, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID
+  DE_down <- as.data.frame(res@DE_genes$down_regulated_Genes)$SYMBOL
+  entrez_down <- bitr(DE_down, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID  
+  
+  # GO enrichment
+  if("GO" %in% GeneSets){
+    print("Performing GO enrichment")
+    if(length(entrez_up)<20){
+      print("Too few upregulated genes for GO enrichment (<20)")
+      results$GOup <- "Too few upregulated genes for GO enrichment (<20)"
+    }else{
+      results$GOup <- as.data.frame(enrichGO(gene = entrez_up,
+                                             universe = universe_Entrez,
+                                             OrgDb = OrgDb,
+                                             ont = GOntology,
+                                             pAdjustMethod = pCorrection,
+                                             pvalueCutoff  = pvalueCutoff,
+                                             qvalueCutoff  = qvalueCutoff,
+                                             readable      = T))
+      
+      if(nrow(results$GOup)>0){results$GOup$Enrichment <- paste("GO enrichment for genes upregulated in ",comparison,sep="")}
+    }
+    if(length(entrez_down)<20){
+      print("Too few downregulated genes for GO enrichment (<20)")
+      results$GOdown <- "Too few downregulated genes for GO enrichment (<20)"
+    }else{
+      results$GOdown <- as.data.frame(enrichGO(gene = entrez_down,
+                                               universe = universe_Entrez,
+                                               OrgDb = OrgDb,
+                                               ont = GOntology,
+                                               pAdjustMethod = pCorrection,
+                                               pvalueCutoff  = pvalueCutoff,
+                                               qvalueCutoff  = qvalueCutoff,
+                                               readable      = T))
+      if(nrow(results$GOdown)>0){results$GOdown$Enrichment <- paste("GO enrichment for genes downregulated in ",comparison,sep="")}
+    }
+  }
+  
+  # KEGG enrichment
+  if("KEGG" %in% GeneSets){
+    print("Performing KEGG enrichment")
+    
+    if(organism == "mouse") {org = "mmu"} 
+    if(organism == "human"){org = "hsa"}
+    
+    if(length(entrez_up)<20){
+      print("Too few upregulated genes for KEGG enrichment (<20)")
+      results$KEGGup <- "Too few upregulated genes for KEGG enrichment (<20)"
+    }else{
+      results$KEGGup <- as.data.frame(enrichKEGG(gene = entrez_up, 
+                                                  organism = org,
+                                                  universe = universe_Entrez, 
+                                                  pAdjustMethod = pCorrection,
+                                                  pvalueCutoff  = pvalueCutoff,
+                                                  qvalueCutoff = qvalueCutoff))
+      if(nrow(results$KEGGup)>0){results$KEGGup$Enrichment <- paste("KEGG enrichment for genes upregulated in ",comparison,sep="")}
+    }
+    if(length(entrez_down)<20){
+      print("Too few downregulated genes for KEGG enrichment (<20)")
+      results$KEGGdown <- "Too few downregulated genes for KEGG enrichment (<20)"
+    } else{
+      results$KEGGdown <- as.data.frame(enrichKEGG(gene = entrez_down, 
+                                                   organism = org,
+                                                   universe = universe_Entrez, 
+                                                   pAdjustMethod = pCorrection,
+                                                   pvalueCutoff  = pvalueCutoff,
+                                                   qvalueCutoff = qvalueCutoff))
+      if(nrow(results$KEGGdown)>0){results$KEGGdown$Enrichment <- paste("KEGG enrichment for genes downregulated in ",comparison,sep="")}
+    }
+  }
+  
+  if("Hallmark" %in% GeneSets |
+     "DO" %in% GeneSets |
+     "cannonicalPathways" %in% GeneSets| 
+     "ImmunoSignatures" %in% GeneSets | 
+     "Motifs" %in% GeneSets){
+    entrez_up_hsa <- as.character(getLDS(attributes = c("mgi_symbol"), 
+                                         filters = "mgi_symbol", 
+                                         values = DE_up, 
+                                         mart = useMart("ensembl", dataset = "mmusculus_gene_ensembl"), 
+                                         attributesL = c("entrezgene_id"), 
+                                         martL = useMart("ensembl", dataset = "hsapiens_gene_ensembl"), 
+                                         uniqueRows=T)[,2])
+    entrez_down_hsa <- getLDS(attributes = c("mgi_symbol"), 
+                              filters = "mgi_symbol", 
+                              values = DE_down, 
+                              mart = useMart("ensembl", dataset = "mmusculus_gene_ensembl"), 
+                              attributesL = c("entrezgene_id"), 
+                              martL = useMart("ensembl", dataset = "hsapiens_gene_ensembl"), 
+                              uniqueRows=T)[,2]
+  }
+  
+  # DO enrichment
+  if("DO" %in% GeneSets){
+    print("Performing Disease Ontology enrichment")
+    
+    if(length(entrez_up)<20){
+      print("Too few upregulated genes for DO enrichment (<20)")
+      results$DOup <- "Too few upregulated genes for DO enrichment (<20)"
+    }else{
+      results$DOup <- as.data.frame(enrichDO(gene = entrez_up_hsa, 
+                                             universe = universe_mouse2human_Entrez, 
+                                             pAdjustMethod = pCorrection,
+                                             pvalueCutoff  = pvalueCutoff,
+                                             qvalueCutoff = qvalueCutoff,
+                                             minGSSize     = 5,
+                                             maxGSSize     = 500,
+                                             readable=TRUE))
+      if(nrow(results$DOup)>0){results$DOup$Enrichment <- paste("DO enrichment for genes upregulated in ",comparison,sep="")}
+    }
+    if(length(entrez_down)<20){
+      print("Too few downregulated genes for DO enrichment (<20)")
+      results$DOdown <- "Too few downregulated genes for DO enrichment (<20)"
+    } else{
+      results$DOdown <- as.data.frame(enrichDO(gene = entrez_down_hsa, 
+                                               universe = universe_mouse2human_Entrez, 
+                                               pAdjustMethod = pCorrection,
+                                               pvalueCutoff  = pvalueCutoff,
+                                               qvalueCutoff = qvalueCutoff,
+                                               minGSSize     = 5,
+                                               maxGSSize     = 500,
+                                               readable=TRUE))
+      if(nrow(results$DOdown)>0){results$DOdown$Enrichment <- paste("DO enrichment for genes downregulated in ",comparison,sep="")}
+    }
+  }
+  
+  # Hallmark enrichment
+  if("Hallmark" %in% GeneSets){
+    print("Performing Hallmark enrichment")
+    if(length(entrez_up_hsa)<20){
+      print("Too few upregulated genes for Hallmark enrichment (<20)")
+      results$Hallmarkup <- "Too few upregulated genes for Hallmark enrichment (<20)"
+    }else{
+      results$HALLMARKup <- as.data.frame(enricher(entrez_up_hsa,
+                                                   TERM2GENE=hallmark_genes,
+                                                   universe = universe_mouse2human_Entrez,  
+                                                   pAdjustMethod = pCorrection,
+                                                   pvalueCutoff  = pvalueCutoff,
+                                                   qvalueCutoff = qvalueCutoff))
+      if(nrow(results$HALLMARKup)>0){results$HALLMARKup$Enrichment <- paste("HALLMARK enrichment for genes upregulated in ",comparison,sep="")}
+    }
+    if(length(entrez_down_hsa)<20){
+      print("Too few downregulated genes for Hallmark enrichment (<20)")
+      results$Hallmarkdown <- "Too few downregulated genes for Hallmark enrichment (<20)"
+    }else{
+      results$HALLMARKdown <- as.data.frame(enricher(entrez_down_hsa,
+                                                     TERM2GENE=hallmark_genes,
+                                                     universe = universe_mouse2human_Entrez,  
+                                                     pAdjustMethod = pCorrection,
+                                                     pvalueCutoff  = pvalueCutoff,
+                                                     qvalueCutoff = qvalueCutoff))
+      if(nrow(results$HALLMARKdown)>0){results$HALLMARKdown$Enrichment <- paste("HALLMARK enrichment for genes downregulated in ",comparison,sep="")}
+    }
+  }
+  
+  # Cannonical Pathway enrichment
+  if("cannonicalPathways" %in% GeneSets){
+    print("Performing Cannonical Pathway (C2) enrichment")
+    if(length(entrez_up_hsa)<20){
+      print("Too few upregulated genes for Cannonical Pathway enrichment (<20)")
+      results$cannonicalPathwaysup <- "Too few upregulated genes for Motif enrichment (<20)"
+    }else{
+      results$cannonicalPathwaysup <- as.data.frame(enricher(entrez_up_hsa,
+                                                             TERM2GENE=cannonicalPathway_genes,
+                                                             universe = universe_mouse2human_Entrez,  
+                                                             pAdjustMethod = pCorrection,
+                                                             pvalueCutoff  = pvalueCutoff,
+                                                             qvalueCutoff = qvalueCutoff))
+      if(nrow(results$cannonicalPathwaysup)>0){results$cannonicalPathwaysup$Enrichment <- paste("Cannonical pathway enrichment for genes upregulated in ",comparison,sep="")}
+    }
+    if(length(entrez_down_hsa)<20){
+      print("Too few downregulated genes for cannonical pathway  enrichment (<20)")
+      results$cannonicalPathwaysdown <- "Too few downregulated genes for cannonical pathway enrichment (<20)"
+    }else{
+      results$cannonicalPathwaysdown <- as.data.frame(enricher(entrez_down_hsa,
+                                                               TERM2GENE=cannonicalPathway_genes,
+                                                               universe = universe_mouse2human_Entrez,  
+                                                               pAdjustMethod = pCorrection,
+                                                               pvalueCutoff  = pvalueCutoff,
+                                                               qvalueCutoff = qvalueCutoff))
+      if(nrow(results$cannonicalPathwaysdown)>0){results$cannonicalPathwaysdown$Enrichment <- paste("Cannonical pathway enrichment for genes downregulated in ",comparison,sep="")}
+    }
+  }
+  
+  # Motif enrichment
+  if("Motifs" %in% GeneSets){
+    print("Performing Motif enrichment")
+    if(length(entrez_up_hsa)<20){
+      print("Too few upregulated genes for Motif enrichment (<20)")
+      results$Motifup <- "Too few upregulated genes for Motif enrichment (<20)"
+    }else{
+      results$Motifup <- as.data.frame(enricher(entrez_up_hsa,
+                                                TERM2GENE=motifs,
+                                                universe = universe_mouse2human_Entrez,  
+                                                pAdjustMethod = pCorrection,
+                                                pvalueCutoff  = pvalueCutoff,
+                                                qvalueCutoff = qvalueCutoff))
+      if(nrow(results$Motifup)>0){results$Motifup$Enrichment <- paste("TF binding motif enrichment for genes upregulated in ",comparison,sep="")}
+    }
+    if(length(entrez_down_hsa)<20){
+      print("Too few downregulated genes for Motif enrichment (<20)")
+      results$Motifdown <- "Too few downregulated genes for Motif enrichment (<20)"
+    }else{
+      results$Motifdown <- as.data.frame(enricher(entrez_down_hsa,
+                                                  TERM2GENE=motifs,
+                                                  universe = universe_mouse2human_Entrez,  
+                                                  pAdjustMethod = pCorrection,
+                                                  pvalueCutoff  = pvalueCutoff,
+                                                  qvalueCutoff = qvalueCutoff))
+      if(nrow(results$Motifdown)>0){results$Motifdown$Enrichment <- paste("TF binding motif enrichment for genes downregulated in ",comparison,sep="")}
+    }
+  }
+  
+  # Immunosignatures enrichment
+  if("ImmunoSignatures" %in% GeneSets){
+    print("Performing immunesignature enrichment")
+    if(length(entrez_up_hsa)<20){
+      print("Too few upregulated genes for Immunosignature enrichment (<20)")
+      results$ImmSigup <- "Too few upregulated genes for Immunosignature enrichment (<20)"
+    }else{
+      results$ImmSigup <- as.data.frame(enricher(entrez_up_hsa,
+                                                 TERM2GENE=immuno_genes,
+                                                 universe = universe_mouse2human_Entrez,  
+                                                 pAdjustMethod = pCorrection,
+                                                 pvalueCutoff  = pvalueCutoff,
+                                                 qvalueCutoff = qvalueCutoff))
+      if(nrow(results$ImmSigup)>0){results$ImmSigup$Enrichment <- paste("Immunosignature enrichment for genes upregulated in ",comparison,sep="")}
+    }
+    if(length(entrez_down_hsa)<20){
+      print("Too few downregulated genes for Immunosignature enrichment (<20)")
+      results$ImmSigdown <- "Too few downregulated genes for Immunosignature enrichment (<20)"
+    }else{
+      results$ImmSigdown <- as.data.frame(enricher(entrez_down_hsa,
+                                                   TERM2GENE=immuno_genes,
+                                                   universe = universe_mouse2human_Entrez,  
+                                                   pAdjustMethod = pCorrection,
+                                                   pvalueCutoff  = pvalueCutoff,
+                                                   qvalueCutoff = qvalueCutoff))
+      if(nrow(results$ImmSigdown)>0){results$ImmSigdown$Enrichment <- paste("Immunosignature enrichment for genes downregulated in ",comparison,sep="")}
+    }
+  }
+  results
+}
+```
+
+
+### GSEA dotplot
+```{r}
+dotplotGSEA <- function(x,
+                        show=25,
+                        font.size=10,
+                        title.size=10,
+                        title.width=100,
+                        order="count"){
+  if(nrow(x)<1){
+    print("No enrichment found.")
+  }else{
+    x <- if(nrow(x)>show){x[c(1:show),]}else{x}
+    if(order=="padj"){
+    x <- x[order(x$Count,decreasing=FALSE),]
+    x$GeneRatio <- factor(x$GeneRatio, levels = unique(x$GeneRatio))
+    x <- x[order(x$p.adjust,decreasing=TRUE),]
+    x$Description <- factor(x$Description, levels = unique(x$Description))
+    }
+    if(order=="count"){
+    x <- x[order(x$Count,decreasing=FALSE),]
+    x$Description <- factor(x$Description, levels = unique(x$Description))
+    x$GeneRatio <- factor(x$GeneRatio, levels = unique(x$GeneRatio))
+    }
+    ggplot(x, aes(x = GeneRatio, y = Description, color = p.adjust)) +
+      geom_point(aes(size = Count)) +
+      scale_colour_gradientn(colours=c('red', 
+                                       'orange', 
+                                       'darkblue',
+                                       'darkblue'),
+                             limits=c(0,1),
+                             values   = c(0,0.05,0.2,0.5,1),
+                             breaks   = c(0.05,0.2,1),
+                             labels = format(c(0.05,0.2,1))) +
+      ylab(NULL) +
+      ggtitle(paste(strwrap(unique(x$Enrichment), width=title.width), collapse = "\n"))+
+      theme_bw() +
+      theme(text = element_text(size=font.size),
+            plot.title = element_text(size=title.size)) 
+  }
+}
+```
+
+
+```{r pre-filtering}
+
+gene_annotation <- tx_annotation[!duplicated(tx_annotation$GENEID),c("GENEID", "SYMBOL", "GENETYPE")]
+
+genes_to_keep <- rowSums(counts(dds_txi)) >= 10 & rownames(counts(dds_txi)) %in% gene_annotation[grep("^HBA|^HBB|^HBD|HBE1|HBE2|^HBG|^HBM|^RPS|^RPL|^MT-", gene_annotation$SYMBOL, invert=T),1]
+
+#& rownames(counts(dds_txi)) %in% gene_annotation[grep("protein_coding", gene_annotation$GENETYPE),1]
+table(genes_to_keep)
+dds <- dds_txi[genes_to_keep,]
+```
+
+
+```{r DESeq calculation}
+dds <- DESeq(dds)
+```
+
+
+
+
+```{r gene annotation}
+
+
+norm_anno <- as.data.frame(counts(dds, normalized=T))
+
+
+norm_anno$GENEID <- row.names(norm_anno)
+
+# add gene annotation extracted from the gtf file
+gene_annotation <- tx_annotation[!duplicated(tx_annotation$GENEID),c("GENEID", "SYMBOL", "GENETYPE")]
+gene_annotation <- gene_annotation[match(rownames(norm_anno), gene_annotation$GENEID),]
+
+# check if row names of the normalized table and the gene annotation match perfectly
+all(rownames(norm_anno) == gene_annotation$GENEID)
+
+# add additional gene annotation downloaded from biomart
+idx <- match(unlist(lapply(strsplit(gene_annotation$GENEID, split = "[.]"), `[[`, 1)), biomart$Gene.stable.ID)
+gene_annotation$DESCRIPTION <- biomart$Gene.description[idx]
+gene_annotation$CHR <- biomart$Chromosome.scaffold.name[idx]
+
+# merge expression table and annotation
+norm_anno <- merge(norm_anno,
+                   gene_annotation,
+                   by = "GENEID")
+rownames(norm_anno) <- norm_anno$GENEID
+
+norm_anno[1:3,c(1:2, (ncol(norm_anno)-5):ncol(norm_anno))]
+
+```
+
+
+
+## Pre-filtering
+
+While it is not necessary to pre-filter low count genes before running the DESeq2 functions, there are two reasons which make pre-filtering useful: 
+  * by removing rows in which there are very few reads, we reduce the memory size of the dds data object, and 
+  * we increase the speed of the transformation and testing functions within DESeq2. 
+
+Here, we perform a minimal pre-filtering to keep only rows that have at least 10 reads total. 
+
+*Note that more strict filtering to increase power is automatically applied via independent filtering or independent hypothesis weighting on the mean of normalized counts within the results function.*
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+
+design(dds) <- ~ status
+
+
+dds <- DESeq(dds)
+
+
+
+
+```
+
+```{r}
+norm_anno <- as.data.frame(counts(dds, normalized=T))
+norm_anno$GENEID <- row.names(norm_anno)
+
+# add gene annotation extracted from the gtf file
+gene_annotation <- tx_annotation[!duplicated(tx_annotation$GENEID),c("GENEID", "SYMBOL", "GENETYPE")]
+gene_annotation <- gene_annotation[match(rownames(norm_anno), gene_annotation$GENEID),]
+
+# check if row names of the normalized table and the gene annotation match perfectly
+all(rownames(norm_anno) == gene_annotation$GENEID)
+
+# add additional gene annotation downloaded from biomart
+
+idx <- match(unlist(lapply(strsplit(gene_annotation$GENEID, split = "[.]"), `[[`, 1)), biomart$Gene.stable.ID)
+gene_annotation$DESCRIPTION <- biomart$Gene.description[idx]
+gene_annotation$CHR <- biomart$Chromosome.scaffold.name[idx]
+
+# merge expression table and annotation
+norm_anno <- merge(norm_anno,
+                   gene_annotation,
+                   by = "GENEID")
+rownames(norm_anno) <- norm_anno$GENEID
+
+norm_anno[1:3,c(1:2, (ncol(norm_anno)-5):ncol(norm_anno))]
+
+
+```
+
+
+
+
+
+```{r}
+
+comparison_table<-data.frame(comparison = c("covid"),
+                             control = c("healthy"))
+
+
+
+
+
+
+```
+
+```{r}
+DEresults_status <- DEAnalysis(condition = "status",
+                        alpha=0.05 ,
+                        lfcThreshold= 0,
+                        sigFC = 2,
+                        multiple_testing="IHW",
+                        shrinkage = TRUE,
+                        shrinkType="normal")
+```
+
+
+#Fig 1B Number of DEG
+
+```{r}
+
+DEcounts <- NULL
+
+for(i in 1:nrow(comparison_table)){
+  tmp <- unlist(DEresults_status[[1+i]]@Number_DE_genes)
+  DEcounts <- rbind(DEcounts, tmp)
+}
+
+rownames(DEcounts) <- "covid_vs_healthy"
+
+DEcounts
+```
+
+
+#Fig 1C Volcano Plot covid_vs_control
+```{r}
+
+
+##Fig 1C
+
+
+
+
+
+comparison = "covid_vs_healthy"
+
+labelnum=15
+
+# specify labeling    
+upDE <-  as.data.frame(DEresults_status[[comparison]]@results[DEresults_status[[comparison]]@results$regulation =="up",]) 
+FClabel_up <- upDE[order(abs(upDE$log2FoldChange), decreasing = TRUE),]
+if(nrow(FClabel_up)>labelnum){
+  FClabel_up <- as.character(FClabel_up[c(1:labelnum),"SYMBOL"])
+} else {
+  FClabel_up <- as.character(FClabel_up$SYMBOL)}
+plabel_up <- upDE[order(upDE$padj, decreasing = FALSE),]
+if(nrow(plabel_up)>labelnum){
+  plabel_up <- as.character(plabel_up[c(1:labelnum),"SYMBOL"])
+} else {
+  plabel_up <- as.character(plabel_up$SYMBOL)}
+
+downDE <-  as.data.frame(DEresults_status[[comparison]]@results[DEresults_status[[comparison]]@results$regulation =="down",]) 
+FClabel_down <- downDE[order(abs(downDE$log2FoldChange), decreasing = TRUE),]
+if(nrow(FClabel_down)>labelnum){
+  FClabel_down <- as.character(FClabel_down[c(1:labelnum),"SYMBOL"])
+} else {
+  FClabel_down <- as.character(FClabel_down$SYMBOL)}
+plabel_down <- downDE[order(downDE$padj, decreasing = FALSE),]
+if(nrow(plabel_down)>labelnum){
+  plabel_down <- as.character(plabel_down[c(1:labelnum),"SYMBOL"])
+} else {
+  plabel_down <- as.character(plabel_down$SYMBOL)}
+
+###
+manual_label_up <- c("G0S2", "MMP9", "IL1R2", "ELANE", "OLFM4", "MPO", "RETN", "MMP8", "ARG1")
+
+label_up <- unique(c(manual_label_up, plabel_up,FClabel_up ))
+length(label_up)
+
+manual_label_down <- c("CD2", "CD96", "CD160", "CD247", "IL7R", "EOMES", "TRAV12-3", "TRAC", "TRBC1", "CD4", "TBX21", "CX3CR1", 
+                       "MSR1", "KLRF1", "TRAV8-3", "TRBV12-4")
+label_down <- unique(c(manual_label_down, plabel_down,FClabel_down ))
+length(label_down)
+
+label <- unique(c(label_up, label_down))
+length(label)
+
+###
+data <- DEresults_status[[comparison]]@results
+data$label<- ifelse(data$SYMBOL %in% label == "TRUE",as.character(data$SYMBOL), "")
+data <- data[,-c(4:5)]
+library(gtools)
+data$anti <- logratio2foldchange(data$log2FoldChange)
+
+data <- data %>% mutate(label_color = ifelse(is.null(label)==FALSE & regulation %in% "up", as.character(paste0("#850505")), as.character("")),
+                        label_color = ifelse(is.null(label)==FALSE & regulation %in% "down", as.character(paste0("#4069b3")), as.character(label_color)))
+
+label_color <- data %>% filter(is.null(label)==FALSE)
+
+ggplot(data=na.omit(data), aes(x=anti, y=-log10(padj), colour=regulation)) +
+  geom_point(alpha=0.4, size=1.75) +
+  scale_color_manual(values=c("cornflowerblue","grey", "firebrick"))+
+  scale_x_continuous(limits=c(-36,36)) +
+  scale_y_continuous() +
+  xlab("") +
+  ylab("") +
+  geom_vline(xintercept = 0, colour="black")+
+  geom_vline(xintercept = c(-2,2), colour="red")+
+  geom_hline(yintercept=-log(0.05,10),colour="red")+
+  geom_text_repel(data=subset(na.omit(data[!data$label =="",]), regulation=="up"), 
+                  #xlim=c(1.5*data$anti),
+                  nudge_x = 2,
+                  #nudge_y = 0.8,
+                  colour="#850505",
+                  #direction="x",
+                  segment.colour = "#bd5555", segment.alpha = 0.5,
+                  aes(label=label), size=2.8)+
+  geom_text_repel(data=subset(na.omit(data[!data$label =="",]), regulation=="down"), 
+                  #xlim=c(1.5*data$anti),
+                  nudge_x = -4,
+                  #nudge_y=2,
+                  colour="#164bab",
+                  #direction="x",
+                  segment.colour = "cornflowerblue", segment.alpha = 0.5,
+                  aes(label=label), size=2.8)+
+  guides(colour=FALSE) + 
+  #ggtitle(paste("Volcano Plot of: ",comparison,sep="")) +
+  theme_bw()
+
+
+
+
+```
+
+#Fig 1D GO term enrichment of DEG
+
+```{r fig.width=10}
+
+
+comparison = "covid_vs_healthy"
+
+OrgDb = org.Hs.eg.db
+
+res <- DEresults_status[[comparison]]
+
+DE_up <- as.data.frame(res@DE_genes$up_regulated_Genes)$SYMBOL
+entrez_up <- bitr(DE_up, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID
+DE_down <- as.data.frame(res@DE_genes$down_regulated_Genes)$SYMBOL
+entrez_down <- bitr(DE_down, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID  
+
+universe <- as.character(norm_anno$SYMBOL)
+
+universe_Entrez <- bitr(universe, 
+                        fromType="SYMBOL", 
+                        toType="ENTREZID", 
+                        OrgDb="org.Hs.eg.db")$ENTREZID
+
+
+
+ego_entrez_up_down<- list()
+
+ego_entrez_up_down[["upregulated"]]<-entrez_up
+ego_entrez_up_down[["downregulated"]]<-entrez_down
+
+cC_covid_vs_healthy <- compareCluster(geneCluster = ego_entrez_up_down,
+                     fun = "enrichGO",
+                     OrgDb         = OrgDb,
+                     universe= universe_Entrez,
+                     ont           = "BP",
+                     pAdjustMethod = "BH",
+                     pvalueCutoff  = 0.05,
+                     qvalueCutoff  = 0.05,
+                     readable      = TRUE)
+
+
+clusterProfiler::dotplot(cC_covid_vs_healthy, showCategory = 8, by = "geneRatio", font.size=10)
+
+
+
+```
+
+
+
+```{r varStab}
+# Please choose to use rlog or VST for the transformation: rlog is recommended for less than 30 samples, vst for more than 30 samples for the sake of computing time
+
+#dds_vst <- rlog(dds, blind = TRUE)
+
+dds_vst <- vst(dds, blind = TRUE)
+```
+
+
+
+
+
+
+#Fig 1E PCA control, mild, severe
+```{r}
+
+col_who_bins <- c("#00A251","#A49DC7","#522685")
+names(col_who_bins) <- c("healthy","mild_WHO","severe_WHO")
+
+plotPCA(ntop="all",
+        xPC=1, 
+        yPC=2,
+        color="who_bins",
+        anno_colour = col_who_bins,
+        point_size=5,
+        title="Principle Component Analysis based on variance-stabilized counts")
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+
+design(dds) <- ~ who_bins
+
+
+dds <- DESeq(dds)
+
+
+
+
+```
+
+
+```{r}
+
+
+comparison_table<- data.frame(comparison = c("severe_WHO", "severe_WHO", "mild_WHO"), control=c("healthy", "mild_WHO", "healthy"))
+
+
+DEresults_who_bins <- DEAnalysis(condition = "who_bins",
+                        alpha=0.05 ,
+                        lfcThreshold= 0,
+                        sigFC = 2,
+                        multiple_testing="IHW",
+                        shrinkage = TRUE,
+                        shrinkType="normal")
+```
+
+
+##Fig 1F Number of DEG
+```{r}
+
+
+comparison_table<- data.frame(comparison = c("severe_WHO", "severe_WHO", "mild_WHO"), control=c("healthy", "mild_WHO", "healthy"))
+
+
+
+
+DEcounts <- NULL
+
+for(i in 1:nrow(comparison_table)){
+  tmp <- unlist(DEresults_who_bins[[1+i]]@Number_DE_genes)
+  DEcounts <- rbind(DEcounts, tmp)
+}
+
+rownames(DEcounts) <- names(DEresults_who_bins)[-1]
+
+
+DEcounts
+
+
+
+```
+
+
+##Fig 1G
+```{r}
+
+##Fig 1G
+
+
+
+
+
+comparison = "severe_WHO_vs_mild_WHO"
+
+labelnum=15
+
+# specify labeling    
+upDE <-  as.data.frame(DEresults_who_bins[[comparison]]@results[DEresults_who_bins[[comparison]]@results$regulation =="up",]) 
+FClabel_up <- upDE[order(abs(upDE$log2FoldChange), decreasing = TRUE),]
+if(nrow(FClabel_up)>labelnum){
+  FClabel_up <- as.character(FClabel_up[c(1:labelnum),"SYMBOL"])
+} else {
+  FClabel_up <- as.character(FClabel_up$SYMBOL)}
+plabel_up <- upDE[order(upDE$padj, decreasing = FALSE),]
+if(nrow(plabel_up)>labelnum){
+  plabel_up <- as.character(plabel_up[c(1:labelnum),"SYMBOL"])
+} else {
+  plabel_up <- as.character(plabel_up$SYMBOL)}
+
+downDE <-  as.data.frame(DEresults_who_bins[[comparison]]@results[DEresults_who_bins[[comparison]]@results$regulation =="down",]) 
+FClabel_down <- downDE[order(abs(downDE$log2FoldChange), decreasing = TRUE),]
+if(nrow(FClabel_down)>labelnum){
+  FClabel_down <- as.character(FClabel_down[c(1:labelnum),"SYMBOL"])
+} else {
+  FClabel_down <- as.character(FClabel_down$SYMBOL)}
+plabel_down <- downDE[order(downDE$padj, decreasing = FALSE),]
+if(nrow(plabel_down)>labelnum){
+  plabel_down <- as.character(plabel_down[c(1:labelnum),"SYMBOL"])
+} else {
+  plabel_down <- as.character(plabel_down$SYMBOL)}
+
+###
+manual_label_up <- c("G0S2", "MMP9", "IL1R2", "ELANE", "OLFM4", "MPO", "RETN", "MMP8", "ARG1")
+
+label_up <- unique(c(manual_label_up, plabel_up,FClabel_up ))
+length(label_up)
+
+manual_label_down <- c("CD2", "CD96", "CD160", "CD247", "IL7R", "EOMES", "TRAV12-3", "TRAC", "TRBC1", "CD4", "TBX21", "CX3CR1", 
+                       "MSR1", "KLRF1", "TRAV8-3", "TRBV12-4")
+label_down <- unique(c(manual_label_down, plabel_down,FClabel_down ))
+length(label_down)
+
+label <- unique(c(label_up, label_down))
+length(label)
+
+###
+data <- DEresults_who_bins[[comparison]]@results
+data$label<- ifelse(data$SYMBOL %in% label == "TRUE",as.character(data$SYMBOL), "")
+data <- data[,-c(4:5)]
+library(gtools)
+data$anti <- logratio2foldchange(data$log2FoldChange)
+
+data <- data %>% mutate(label_color = ifelse(is.null(label)==FALSE & regulation %in% "up", as.character(paste0("#850505")), as.character("")),
+                        label_color = ifelse(is.null(label)==FALSE & regulation %in% "down", as.character(paste0("#4069b3")), as.character(label_color)))
+
+label_color <- data %>% filter(is.null(label)==FALSE)
+
+ggplot(data=na.omit(data), aes(x=anti, y=-log10(padj), colour=regulation)) +
+  geom_point(alpha=0.4, size=1.75) +
+  scale_color_manual(values=c("cornflowerblue","grey", "firebrick"))+
+  scale_x_continuous(limits=c(-12,12)) +
+  scale_y_continuous() +
+  xlab("") +
+  ylab("") +
+  geom_vline(xintercept = 0, colour="black")+
+  geom_vline(xintercept = c(-2,2), colour="red")+
+  geom_hline(yintercept=-log(0.05,10),colour="red")+
+  geom_text_repel(data=subset(na.omit(data[!data$label =="",]), regulation=="up"), 
+                  #xlim=c(1.5*data$anti),
+                  nudge_x = 2,
+                  #nudge_y = 0.8,
+                  colour="#850505",
+                  #direction="x",
+                  segment.colour = "#bd5555", segment.alpha = 0.5,
+                  aes(label=label), size=2.8)+
+  geom_text_repel(data=subset(na.omit(data[!data$label =="",]), regulation=="down"), 
+                  #xlim=c(1.5*data$anti),
+                  nudge_x = -4,
+                  #nudge_y=2,
+                  colour="#164bab",
+                  #direction="x",
+                  segment.colour = "cornflowerblue", segment.alpha = 0.5,
+                  aes(label=label), size=2.8)+
+  guides(colour=FALSE) + 
+  #ggtitle(paste("Volcano Plot of: ",comparison,sep="")) +
+  theme_bw()
+  
+```
+
+
+```{r echo=FALSE, fig.height=8, fig.width=10, message=FALSE, results='hide'}
+
+#col_condition <- viridis_pal()(2)
+
+plot_order <- c("status")
+
+
+col_who_bins <- c( "#522685" , "#A49DC7" , "#00A251" )
+names(col_who_bins) <- c("severe_WHO","mild_WHO" , "healthy")
+ 
+
+col_age_bins <- c("#FCFDFF", "#E7ECFF", "#D2DBFF", "#BECBFF", "#A9BAFF", "#95AAFF", "#8099FF", "#6B88FF", "#5778FF", "#4267FF", "#2E57FF", "#1946FF","#0536FF")
+names(col_age_bins) <-c( "25-29","30-34","35-39","40-44","45-49","50-54","55-59","60-64","65-69","70-74","75-79","80-84","85+")
+
+
+col_status <- c("red", "lightblue" )
+names(col_status) <- c("covid","healthy")
+
+col_gender <- c("blue","yellow")
+names(col_gender) <- c("M","F")
+
+
+col_SOFA <- viridis_pal()(9)
+names(col_SOFA) <- c("0","1","2","3","4","5","6","7","8")
+
+col_Outcome <- c("black","gold")
+names(col_Outcome) <- c("Death","Survival")
+
+col_intubated <- c("black","gold")
+names(col_intubated) <- c("Yes","No")
+
+col_Immune_classification <- viridis_pal(option = "B")(4)
+names(col_Immune_classification) <- c("Dysregulation","MAS","Intermediate","healthy")
+
+
+
+# combine color code into list
+ann_colors <- list(status = col_status, gender = col_gender, SOFA = col_SOFA, Outcome = col_Outcome, Intubated=col_intubated, Immune_classification =col_Immune_classification)
+
+
+
+
+
+
+
+
+
+
+
+
+
+plot_annotation <- sample_table[,c("status","who_bins","Immune_classification","SOFA","Outcome"), drop = F]
+
+rownames(plot_annotation) <- sample_table$ID
+
+
+rv = genefilter::rowVars(assay(dds_vst))
+q75 = quantile(rowVars(assay(dds_vst)), .75)
+q75_names = names(which(rv > q75))
+
+
+
+
+
+
+plotHeatmap(geneset = q75_names,
+                title = "Heatmap of 25% most variable genes",
+                show_rownames = FALSE,
+                cluster_cols = TRUE)
+
+
+
+```
+
+##Fig S1A Volcano Plot of: severe vs control
+
+
+
+```{r}
+##Sup Fig 1A
+comparison = "severe_WHO_vs_healthy"
+labelnum=15
+
+# specify labeling    
+upDE <-  as.data.frame(DEresults_who_bins[[comparison]]@results[DEresults_who_bins[[comparison]]@results$regulation =="up",]) 
+FClabel_up <- upDE[order(abs(upDE$log2FoldChange), decreasing = TRUE),]
+if(nrow(FClabel_up)>labelnum){
+  FClabel_up <- as.character(FClabel_up[c(1:labelnum),"SYMBOL"])
+} else {
+  FClabel_up <- as.character(FClabel_up$SYMBOL)}
+plabel_up <- upDE[order(upDE$padj, decreasing = FALSE),]
+if(nrow(plabel_up)>labelnum){
+  plabel_up <- as.character(plabel_up[c(1:labelnum),"SYMBOL"])
+} else {
+  plabel_up <- as.character(plabel_up$SYMBOL)}
+
+downDE <-  as.data.frame(DEresults_who_bins[[comparison]]@results[DEresults_who_bins[[comparison]]@results$regulation =="down",]) 
+FClabel_down <- downDE[order(abs(downDE$log2FoldChange), decreasing = TRUE),]
+if(nrow(FClabel_down)>labelnum){
+  FClabel_down <- as.character(FClabel_down[c(1:labelnum),"SYMBOL"])
+} else {
+  FClabel_down <- as.character(FClabel_down$SYMBOL)}
+plabel_down <- downDE[order(downDE$padj, decreasing = FALSE),]
+if(nrow(plabel_down)>labelnum){
+  plabel_down <- as.character(plabel_down[c(1:labelnum),"SYMBOL"])
+} else {
+  plabel_down <- as.character(plabel_down$SYMBOL)}
+
+###
+manual_label_up <- c("ELANE", "ARG1", "OLFM4", "MPO", "IL10", "CEACAM8")
+
+label_up <- unique(c(manual_label_up, plabel_up,FClabel_up ))
+length(label_up)
+
+manual_label_down <- c("RCAN3", "NELL2", "CD247", "RORC", "KLRB1", "CD28", "LEF1")
+label_down <- unique(c(manual_label_down, plabel_down,FClabel_down ))
+length(label_down)
+
+label <- unique(c(label_up, label_down))
+length(label)
+
+###
+data <- DEresults_who_bins[[comparison]]@results
+data$label<- ifelse(data$SYMBOL %in% label == "TRUE",as.character(data$SYMBOL), "")
+data <- data[,-c(4:5)]
+library(gtools)
+data$anti <- logratio2foldchange(data$log2FoldChange)
+
+data <- data %>% mutate(label_color = ifelse(is.null(label)==FALSE & regulation %in% "up", as.character(paste0("#850505")), as.character("")),
+                        label_color = ifelse(is.null(label)==FALSE & regulation %in% "down", as.character(paste0("#4069b3")), as.character(label_color)))
+
+label_color <- data %>% filter(is.null(label)==FALSE)
+
+ggplot(data=na.omit(data), aes(x=anti, y=-log10(padj), colour=regulation)) +
+  geom_point(alpha=0.4, size=1.75) +
+  scale_color_manual(values=c("cornflowerblue","grey", "firebrick"))+
+  scale_x_continuous(limits=c(-max(data$anti),max(data$anti))) +
+  scale_y_continuous() +
+  xlab("") +
+  ylab("") +
+  geom_vline(xintercept = 0, colour="black")+
+  geom_vline(xintercept = c(-2,2), colour="red")+
+  geom_hline(yintercept=-log(0.05,10),colour="red")+
+  geom_text_repel(data=subset(na.omit(data[!data$label =="",]), regulation=="up"), 
+                  #xlim=c(1.5*data$anti),
+                  nudge_x = 3,
+                  nudge_y = 0.8,
+                  colour="#850505",
+                  #direction="x",
+                  segment.colour = "#bd5555", segment.alpha = 0.5,
+                  aes(label=label), size=2.8)+
+  geom_text_repel(data=subset(na.omit(data[!data$label =="",]), regulation=="down"), 
+                  #xlim=c(1.5*data$anti),
+                  nudge_x = -4,
+                  #nudge_y=2,
+                  colour="#164bab",
+                  #direction="x",
+                  segment.colour = "cornflowerblue", segment.alpha = 0.5,
+                  aes(label=label), size=2.8)+
+  guides(colour=FALSE) + 
+  #ggtitle(paste("Volcano Plot of: ",comparison,sep="")) +
+  theme_bw()
+```
+
+##Fig S1B Volcano Plot of: mild vs control
+
+```{r}
+##Sup Fig 1B
+comparison = "mild_WHO_vs_healthy"
+labelnum=15
+
+# specify labeling    
+upDE <-  as.data.frame(DEresults_who_bins[[comparison]]@results[DEresults_who_bins[[comparison]]@results$regulation =="up",]) 
+FClabel_up <- upDE[order(abs(upDE$log2FoldChange), decreasing = TRUE),]
+if(nrow(FClabel_up)>labelnum){
+  FClabel_up <- as.character(FClabel_up[c(1:labelnum),"SYMBOL"])
+} else {
+  FClabel_up <- as.character(FClabel_up$SYMBOL)}
+plabel_up <- upDE[order(upDE$padj, decreasing = FALSE),]
+if(nrow(plabel_up)>labelnum){
+  plabel_up <- as.character(plabel_up[c(1:labelnum),"SYMBOL"])
+} else {
+  plabel_up <- as.character(plabel_up$SYMBOL)}
+
+downDE <-  as.data.frame(DEresults_who_bins[[comparison]]@results[DEresults_who_bins[[comparison]]@results$regulation =="down",]) 
+FClabel_down <- downDE[order(abs(downDE$log2FoldChange), decreasing = TRUE),]
+if(nrow(FClabel_down)>labelnum){
+  FClabel_down <- as.character(FClabel_down[c(1:labelnum),"SYMBOL"])
+} else {
+  FClabel_down <- as.character(FClabel_down$SYMBOL)}
+plabel_down <- downDE[order(downDE$padj, decreasing = FALSE),]
+if(nrow(plabel_down)>labelnum){
+  plabel_down <- as.character(plabel_down[c(1:labelnum),"SYMBOL"])
+} else {
+  plabel_down <- as.character(plabel_down$SYMBOL)}
+
+###
+manual_label_up <- c( "IGLV3-10", "IGHV3-72", "IGHG1", "MMP8")
+
+label_up <- unique(c(manual_label_up, plabel_up,FClabel_up ))
+length(label_up)
+
+manual_label_down <- c("ABLIM1", "NELL2", "RCAN3", "RORC", "KLRB1")
+label_down <- unique(c(manual_label_down, plabel_down,FClabel_down ))
+length(label_down)
+
+label <- unique(c(label_up, label_down))
+length(label)
+
+###
+data <- DEresults_who_bins[[comparison]]@results
+data$label<- ifelse(data$SYMBOL %in% label == "TRUE",as.character(data$SYMBOL), "")
+data <- data[,-c(4:5)]
+library(gtools)
+data$anti <- logratio2foldchange(data$log2FoldChange)
+
+data <- data %>% mutate(label_color = ifelse(is.null(label)==FALSE & regulation %in% "up", as.character(paste0("#850505")), as.character("")),
+                        label_color = ifelse(is.null(label)==FALSE & regulation %in% "down", as.character(paste0("#4069b3")), as.character(label_color)))
+
+label_color <- data %>% filter(is.null(label)==FALSE)
+
+ggplot(data=na.omit(data), aes(x=anti, y=-log10(padj), colour=regulation)) +
+  geom_point(alpha=0.4, size=1.75) +
+  scale_color_manual(values=c("cornflowerblue","grey", "firebrick"))+
+  scale_x_continuous(limits=c(-max(data$anti),max(data$anti))) +
+  scale_y_continuous() +
+  xlab("") +
+  ylab("") +
+  geom_vline(xintercept = 0, colour="black")+
+  geom_vline(xintercept = c(-2,2), colour="red")+
+  geom_hline(yintercept=-log(0.05,10),colour="red")+
+  geom_text_repel(data=subset(na.omit(data[!data$label =="",]), regulation=="up"), 
+                  #xlim=c(1.5*data$anti),
+                  nudge_x = 3,
+                  #nudge_y = 0.8,
+                  colour="#850505",
+                  #direction="x",
+                  segment.colour = "#bd5555", segment.alpha = 0.5,
+                  aes(label=label), size=2.8)+
+  geom_text_repel(data=subset(na.omit(data[!data$label =="",]), regulation=="down"), 
+                  #xlim=c(1.5*data$anti),
+                  nudge_x = -4,
+                  #nudge_y=2,
+                  colour="#164bab",
+                  #direction="x",
+                  segment.colour = "cornflowerblue", segment.alpha = 0.5,
+                  aes(label=label), size=2.8)+
+  guides(colour=FALSE) + 
+  #ggtitle(paste("Volcano Plot of: ",comparison,sep="")) +
+  theme_bw()
+
+```
+
+
+#Fig S1C GO term enrichment of DEG, severe_WHO_vs_control, mild_WHO_vs_control, severe_WHO_vs_mild_WHO
+
+```{r fig.width=10}
+
+
+
+
+comparison_table<- data.frame(comparison = c("mild_WHO", "severe_WHO", "severe_WHO"), control=c("healthy", "healthy", "mild_WHO"))
+
+compareGSEA <- function(comparisons, 
+                        organism, # chose organism
+                        GeneSets =c("GO","KEGG"), # choose gene sets for enrichment
+                        ontology= "BP", # define GO subset
+                        pCorrection = "bonferroni", # choose the p-value adjustment method
+                        pvalueCutoff = 0.05, # set the unadj. or adj. p-value cutoff (depending on correction method)
+                        qvalueCutoff = 0.05, # set the q-value cutoff (FDR corrected)
+                        showMax = 20){
+  
+  if(organism == "mouse") {
+    OrgDb = org.Mm.eg.db
+  } else if(organism == "human"){
+      OrgDb = org.Hs.eg.db
+    } else {stop("Wrong Organism. Select mouse or human.")}
+  
+  ENTREZlist <-  list()
+  for(i in 1:length(comparisons)){
+    res <- DEresults_who_bins[names(DEresults_who_bins) %in% comparisons]
+    DE_up <- as.data.frame(res[[i]]@DE_genes$up_regulated_Genes)$SYMBOL
+    entrez_up <- bitr(DE_up, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID
+    DE_down <- as.data.frame(res[[i]]@DE_genes$down_regulated_Genes)$SYMBOL
+    entrez_down <- bitr(DE_down, fromType = "SYMBOL", toType="ENTREZID", OrgDb=OrgDb)$ENTREZID  
+    x <- setNames(list(entrez_up, entrez_down),
+                  c(paste(names(res[i]),"_up",sep=""), 
+                    paste(names(res[i]),"_down",sep="")))
+    ENTREZlist <- c(ENTREZlist,x)
+  }
+  
+  list <- list()
+  
+  # Compare the Clusters regarding their GO enrichment  
+  if("GO" %in% GeneSets){
+    print("Performing GO enrichment")
+    CompareClusters_GO <- compareCluster(geneCluster = ENTREZlist, 
+                                       fun = "enrichGO",  
+                                       universe = universe_Entrez,
+                                       OrgDb = OrgDb,
+                                       ont = ontology, 
+                                       pvalueCutoff  = pvalueCutoff, 
+                                       pAdjustMethod = pCorrection, 
+                                       qvalueCutoff  = pvalueCutoff,  
+                                       readable      = T)
+    list$GOresults <- as.data.frame(CompareClusters_GO)
+    list$GOplot <- clusterProfiler::dotplot(CompareClusters_GO, showCategory = showMax, by = "geneRatio", font.size=10)
+  }
+  
+  if("KEGG" %in% GeneSets){
+    print("Performing KEGG enrichment")
+    
+    if(organism == "mouse"){org = "mmu"} 
+    if(organism == "human"){org = "hsa"}
+    
+    # Compare the Clusters regarding their KEGG enrichment  
+    CompareClusters_KEGG <- compareCluster(geneCluster = ENTREZlist, 
+                                         fun = "enrichKEGG",  
+                                         universe = universe_Entrez,
+                                         organism = org, 
+                                         pvalueCutoff  = pvalueCutoff, 
+                                         pAdjustMethod = pCorrection, 
+                                         qvalueCutoff  = pvalueCutoff)
+    list$KEGGresults <- as.data.frame(CompareClusters_KEGG)
+    list$KEGGplot <- clusterProfiler::dotplot(CompareClusters_KEGG, showCategory = showMax, by = "geneRatio", font.size=10)
+  }
+  list
+}
+
+
+
+
+
+
+
+
+DEcompare <- compareGSEA(comparisons = c("severe_WHO_vs_healthy","mild_WHO_vs_healthy","severe_WHO_vs_mild_WHO"),
+                         organism = "human",
+                          GeneSets = c("GO"),
+                         pCorrection = "BH",
+                         pvalueCutoff = 0.05,
+                         qvalueCutoff = 0.05,
+                         showMax = 3,
+                         ontology = "BP")
+
+DEcompare$GOplot
+
+
+
+
+```
+
+##Fig S1D PCA COVID-19, control
+
+```{r}
+
+col_status <- c("#522685","#00A251")
+names(col_status) <- c("covid","healthy")
+
+
+
+
+plotPCA(ntop="all",
+        xPC=1, 
+        yPC=2,
+        color="status",
+        anno_colour = col_status,
+        point_size=5,
+        title="Principle Component Analysis based on variance-stabilized counts")
+
+
+```
+
+#Fig S1E Heatmap of Transcription factors, -Surfaceome, -Secretome, -Epigenetic regulators
+
+
+```{r fig.width=10}
+
+
+
+library("grid")
+library("gridExtra")
+
+cutti = 20
+
+grab_grob <- function(){
+  grid.echo()
+  grid.grab()
+}
+
+
+#TFs
+#Transcription_factor_list <- read.csv("E:/Ioanna/COVID-19 + PAXgene/COVID-19 Greece/201023_revision/reference_files/TFcat.txt",sep = "")
+#Transcription_factor_list <- norm_anno[norm_anno$SYMBOL %in% Transcription_factor_list$Human & norm_anno$SYMBOL %in% allDEgenes_symbol,]
+
+var_genes_tu <- as.data.frame(t(data.frame(as.list(genefilter::rowVars(Transcription_factor_list[,2:42])))))
+colnames(var_genes_tu) <- "var"
+var_genes_tu$ID <- rownames(var_genes_tu)
+var_genes_tu = head(var_genes_tu[order(-var_genes_tu$var),],cutti)
+
+norm_anno_Thomas <- Transcription_factor_list[Transcription_factor_list$GENEID %in% var_genes_tu$ID,]
+norm_anno_Thomas <- norm_anno_Thomas[,2:(ncol(norm_anno_Thomas)-3)]
+Dataset_1_symbol <- norm_anno_Thomas[!duplicated(norm_anno_Thomas[,ncol(norm_anno_Thomas)]), ]
+Dataset_1_symbol <- Dataset_1_symbol[complete.cases(Dataset_1_symbol), ]
+row.names(Dataset_1_symbol) <- Dataset_1_symbol[,ncol(norm_anno_Thomas)]
+Dataset_1 <- Dataset_1_symbol[,c(-ncol(norm_anno_Thomas))]
+
+colnames(Dataset_1) <- sample_table$who_bins
+
+phenotype <- c(unique(names(Dataset_1)))
+tmp <- as.data.frame(rowMeans(Dataset_1[,grep(phenotype[1], names(Dataset_1))]))
+names(tmp)[length(tmp)] <- phenotype[1] 
+df <- tmp
+for(i in 2:length(phenotype)){
+tmp <- as.data.frame(rowMeans(Dataset_1[,grep(phenotype[i], names(Dataset_1))]))
+names(tmp)[length(tmp)] <- phenotype[i]
+df <- merge(df, tmp, by = 0)
+row.names(df) <- df$Row.names
+df$Row.names <- NULL
+}
+
+
+input_scale <- t(scale(t(df)))
+
+max.value=NULL
+df <- df[,c(3,2,1)]
+top20_trans <- pheatmap(df,
+         cluster_row = T,
+         cluster_cols = F,
+         scale = c("row"),
+         show_rownames = T,
+         show_colnames = T,
+         cellwidth = 15,
+         cellheight = 12,
+         main = c("Transcription factors"),
+        # breaks = scaleColors2(data = input_scale, maxvalue = max.value)[["breaks"]], 
+         color = colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(c(floor(-max(df, na.rm = T)), seq(-2, 2, 0.1),  ceiling(max(df, na.rm = T))))),
+         border_color = "black")
+
+
+
+
+
+#Surfaceome
+#Transcription_factor_list <- read.csv("E:/Ioanna/COVID-19 + PAXgene/COVID-19 Greece/201023_revision/reference_files/SurfaceomeHuman&Mouse_2017_04_24_OP.txt",sep = "")
+#Transcription_factor_list <- norm_anno[norm_anno$SYMBOL %in% Transcription_factor_list$Human & norm_anno$SYMBOL %in% allDEgenes_symbol,]
+
+
+var_genes_tu <- as.data.frame(t(data.frame(as.list(genefilter::rowVars(Transcription_factor_list[,2:42])))))
+colnames(var_genes_tu) <- "var"
+var_genes_tu$ID <- rownames(var_genes_tu)
+var_genes_tu = head(var_genes_tu[order(-var_genes_tu$var),],cutti)
+
+norm_anno_Thomas <- Transcription_factor_list[Transcription_factor_list$GENEID %in% var_genes_tu$ID,]
+norm_anno_Thomas <- norm_anno_Thomas[,2:(ncol(norm_anno_Thomas)-3)]
+
+Dataset_1_symbol <- norm_anno_Thomas[!duplicated(norm_anno_Thomas[,ncol(norm_anno_Thomas)]), ]
+Dataset_1_symbol <- Dataset_1_symbol[complete.cases(Dataset_1_symbol), ]
+row.names(Dataset_1_symbol) <- Dataset_1_symbol[,ncol(norm_anno_Thomas)]
+Dataset_1 <- Dataset_1_symbol[,c(-ncol(norm_anno_Thomas))]
+
+colnames(Dataset_1) <- sample_table$who_bins
+
+phenotype <- c(unique(names(Dataset_1)))
+tmp <- as.data.frame(rowMeans(Dataset_1[,grep(phenotype[1], names(Dataset_1))]))
+names(tmp)[length(tmp)] <- phenotype[1] 
+df <- tmp
+for(i in 2:length(phenotype)){
+tmp <- as.data.frame(rowMeans(Dataset_1[,grep(phenotype[i], names(Dataset_1))]))
+names(tmp)[length(tmp)] <- phenotype[i]
+df <- merge(df, tmp, by = 0)
+row.names(df) <- df$Row.names
+df$Row.names <- NULL
+}
+
+
+input_scale <- t(scale(t(df)))
+
+max.value=1
+df <- df[,c(3,2,1)]
+top20_surf <- pheatmap(df,
+         cluster_row = T,
+         cluster_cols = F,
+         scale = c("row"),
+         show_rownames = T,
+         show_colnames = T,
+         cellwidth = 15,
+         cellheight = 12,
+         main = c("Surfaceome"),
+         color = colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(c(floor(-max(df, na.rm = T)), seq(-2, 2, 0.1),  ceiling(max(df, na.rm = T))))),
+         border_color = "black")
+
+
+
+
+
+
+#Secretome
+#Transcription_factor_list <- read.csv("E:/Ioanna/COVID-19 + PAXgene/COVID-19 Greece/201023_revision/reference_files/human secretome.txt",sep = "", header = F)
+#Transcription_factor_list <- norm_anno[norm_anno$SYMBOL %in% Transcription_factor_list$V1 & norm_anno$SYMBOL %in% allDEgenes_symbol,]
+
+
+var_genes_tu <- as.data.frame(t(data.frame(as.list(genefilter::rowVars(Transcription_factor_list[,2:42])))))
+colnames(var_genes_tu) <- "var"
+var_genes_tu$ID <- rownames(var_genes_tu)
+var_genes_tu = head(var_genes_tu[order(-var_genes_tu$var),],cutti)
+
+norm_anno_Thomas <- Transcription_factor_list[Transcription_factor_list$GENEID %in% var_genes_tu$ID,]
+norm_anno_Thomas <- norm_anno_Thomas[,2:(ncol(norm_anno_Thomas)-3)]
+Dataset_1_symbol <- norm_anno_Thomas[!duplicated(norm_anno_Thomas[,ncol(norm_anno_Thomas)]), ]
+Dataset_1_symbol <- Dataset_1_symbol[complete.cases(Dataset_1_symbol), ]
+row.names(Dataset_1_symbol) <- Dataset_1_symbol[,ncol(norm_anno_Thomas)]
+Dataset_1 <- Dataset_1_symbol[,c(-ncol(norm_anno_Thomas))]
+
+colnames(Dataset_1) <- sample_table$who_bins
+
+phenotype <- c(unique(names(Dataset_1)))
+tmp <- as.data.frame(rowMeans(Dataset_1[,grep(phenotype[1], names(Dataset_1))]))
+names(tmp)[length(tmp)] <- phenotype[1] 
+df <- tmp
+for(i in 2:length(phenotype)){
+tmp <- as.data.frame(rowMeans(Dataset_1[,grep(phenotype[i], names(Dataset_1))]))
+names(tmp)[length(tmp)] <- phenotype[i]
+df <- merge(df, tmp, by = 0)
+row.names(df) <- df$Row.names
+df$Row.names <- NULL
+}
+
+
+input_scale <- t(scale(t(df)))
+
+max.value=NULL
+df <- df[,c(3,2,1)]
+top20_secret <- pheatmap(df,
+         cluster_row = T,
+         cluster_cols = F,
+         scale = c("row"),
+         show_rownames = T,
+         show_colnames = T,
+         cellwidth = 15,
+         cellheight = 12,
+         main = c("Secretome"),
+         color = colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(c(floor(-max(df, na.rm = T)), seq(-2, 2, 0.1),  ceiling(max(df, na.rm = T))))),
+         border_color = "black")
+
+
+
+firstup <- function(x) {
+  substr(x, 1, 1) <- toupper(substr(x, 1, 1))
+  x
+}
+
+#Epigenetic
+#Transcription_factor_list <- read.delim("E:/Ioanna/COVID-19 + PAXgene/COVID-19 Greece/201023_revision/reference_files/epigenetic_modulators.txt")
+#Transcription_factor_list <- norm_anno[norm_anno$SYMBOL %in% Transcription_factor_list$gene & norm_anno$SYMBOL %in% allDEgenes_symbol,]
+
+var_genes_tu <- as.data.frame(t(data.frame(as.list(genefilter::rowVars(Transcription_factor_list[,2:42])))))
+colnames(var_genes_tu) <- "var"
+var_genes_tu$ID <- rownames(var_genes_tu)
+var_genes_tu = head(var_genes_tu[order(-var_genes_tu$var),],cutti)
+
+norm_anno_Thomas <- Transcription_factor_list[Transcription_factor_list$GENEID %in% var_genes_tu$ID,]
+norm_anno_Thomas <- norm_anno_Thomas[,2:(ncol(norm_anno_Thomas)-3)]
+#norm_anno_Thomas <- norm_anno_Thomas[,-c(ncol(norm_anno_Thomas)-1)]
+Dataset_1_symbol <- norm_anno_Thomas[!duplicated(norm_anno_Thomas[,ncol(norm_anno_Thomas)]), ]
+Dataset_1_symbol <- Dataset_1_symbol[complete.cases(Dataset_1_symbol), ]
+row.names(Dataset_1_symbol) <- Dataset_1_symbol[,ncol(norm_anno_Thomas)]
+Dataset_1 <- Dataset_1_symbol[,c(-ncol(norm_anno_Thomas))]
+
+colnames(Dataset_1) <- sample_table$who_bins
+
+phenotype <- c(unique(names(Dataset_1)))
+tmp <- as.data.frame(rowMeans(Dataset_1[,grep(phenotype[1], names(Dataset_1))]))
+names(tmp)[length(tmp)] <- phenotype[1] 
+df <- tmp
+for(i in 2:length(phenotype)){
+tmp <- as.data.frame(rowMeans(Dataset_1[,grep(phenotype[i], names(Dataset_1))]))
+names(tmp)[length(tmp)] <- phenotype[i]
+df <- merge(df, tmp, by = 0)
+row.names(df) <- df$Row.names
+df$Row.names <- NULL
+}
+
+input_scale <- t(scale(t(df)))
+
+max.value=NULL
+df <- df[,c(3,2,1)]
+
+
+top20_epi <- pheatmap(df,
+                      cluster_row = T,
+                      cluster_cols = F,
+                      scale = c("row"),
+                      show_rownames = T,
+                      show_colnames = T,
+                      cellwidth = 15,
+                      cellheight = 12,
+                      main = c("Epigenetic regulators"),
+                      color = colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(c(floor(-max(df, na.rm = T)), seq(-2, 2, 0.1),  ceiling(max(df, na.rm = T))))),
+         border_color = "black")
+
+
+
+grid.arrange(arrangeGrob(top20_trans[[4]],top20_surf[[4]], top20_secret[[4]],top20_epi[[4]], nrow=1))
+
+```
+
+This sciprt is for generating the clusters based on clinical data.
+In this script you can generate: 
+1) clusters
+2) The plots used for figure S1 panels F-H (heatmap of PC1 contribution, plots for assesing number of clusters)
+
+# 1. R requirements
+## 1.1. Load required packages
+```{r}
+library("cluster")
+library("ggplot2")
+library("randomcoloR")
+library("factoextra")
+library("mixOmics")
+library("fpc")
+library("pheatmap")
+```
+## 1.2. Custom functions
+
+####Function for clustering stat
+
+```{r}
+
+# This code below will produce a dataframe with observations in columns and variables in row
+
+library(fpc)
+cstats.table <- function(dist, tree, k) {
+clust.assess <- c("cluster.number","n","within.cluster.ss","average.within","average.between",
+                  "wb.ratio","dunn2","avg.silwidth")
+clust.size <- c("cluster.size")
+stats.names <- c()
+row.clust <- c()
+output.stats <- matrix(ncol = k, nrow = length(clust.assess))
+cluster.sizes <- matrix(ncol = k, nrow = k)
+for(i in c(1:k)){
+  row.clust[i] <- paste("Cluster-", i, " size")
+}
+for(i in c(2:k)){
+  stats.names[i] <- paste("Test", i-1)
+  
+  for(j in seq_along(clust.assess)){
+    output.stats[j, i] <- unlist(cluster.stats(d = dist, clustering = cutree(tree, k = i))[clust.assess])[j]
+    
+  }
+  
+  for(d in 1:k) {
+    cluster.sizes[d, i] <- unlist(cluster.stats(d = dist, clustering = cutree(tree, k = i))[clust.size])[d]
+    dim(cluster.sizes[d, i]) <- c(length(cluster.sizes[i]), 1)
+    cluster.sizes[d, i]
+    
+  }
+}
+output.stats.df <- data.frame(output.stats)
+cluster.sizes <- data.frame(cluster.sizes)
+cluster.sizes[is.na(cluster.sizes)] <- 0
+rows.all <- c(clust.assess, row.clust)
+# rownames(output.stats.df) <- clust.assess
+output <- rbind(output.stats.df, cluster.sizes)[ ,-1]
+colnames(output) <- stats.names[2:k]
+rownames(output) <- rows.all
+is.num <- sapply(output, is.numeric)
+output[is.num] <- lapply(output[is.num], round, 2)
+output
+}
+
+```
+
+```{r}
+rownames(sample_table)<-sample_table$ID
+sample_table_original<-sample_table
+head(sample_table)
+```
+# 3. PC contribution using Mixomics
+
+Because the healthy individuals have most the clinical information missing, we do not consider the clinical parameters of healthy in this analysis but only for COVID patients
+
+##3.1.PC1/2 contributions
+```{r}
+
+sample_table$SOFA<-as.integer(sample_table$SOFA)
+sample_table$WHO<-as.integer(sample_table$WHO)
+
+#START HERE
+rld_df<-data.frame(assay(dds_vst))
+dds_vst_matrix<-as.matrix(assay(dds_vst))
+# Select principal components
+tune.pca(t(dds_vst_matrix),ncomp = NULL,center = T)
+pca.data<-pca(t(rld_df), ncomp=5, center=T,scale=F)
+plot(pca.data)
+pca.data
+pca.data$x<-as.data.frame(pca.data$x)
+
+
+
+M<-sample_table
+rownames(M)<-rownames(sample_table)
+#preform analysis for contribution only for covid, to do that I will replace the parameters in healthy to NA
+
+M[M$status=="healthy",]<-NA
+
+# Calculate variance attributed to metadata
+
+
+M<-M[,which(colnames(M) %in% c("Total.white.blood.cell.count...mm3.", "Total.neutrophil.count...mm3.","Total.lymphocyte.count...mm3.","age","gender","SOFA","Intubated","Outcome","Immune_classification","Charlson","PneumoniaIndex","diabetes2","Chronic_heart_failure","Chronic_renal_disease","Coronary_heart_disease","Dyslipidemia","Hypothyroidism","Hypertension","WHO"))]
+
+
+#factor yn columns
+yn_col<-c("Intubated","diabetes2","Dyslipidemia","Hypothyroidism","Coronary_heart_disease","Chronic_renal_disease","Chronic_heart_failure","Hypertension")
+
+#pca.data$x<-pca.data$x[,c(1:5)]
+pc_adj_r_squared<-matrix(NA,ncol=dim(pca.data$x)[2],nrow=dim(M)[2])
+
+
+for(i in 1:dim(pca.data$x)[2]){
+  print(i)
+  for(j in 1:dim(M)[2])
+  {
+    pc_adj_r_squared[j,i]<-summary(lm(pca.data$x[,i]~M[,j], na.action=na.exclude))$adj.r.squared
+  }
+}
+pc_adj_r_squared<-as.data.frame(pc_adj_r_squared)
+colnames(pc_adj_r_squared)<-colnames(pca.data$x)
+rownames(pc_adj_r_squared)<-colnames(M)
+pc_adj_r_squared<-pc_adj_r_squared[,-6]
+pc_adj_r_squared
+
+my_pc_r_df<-pc_adj_r_squared[-1,c(1:2)]
+#my_pc_r_df<-my_pc_r_df[c(10:21),]
+my_pc_r_df<-my_pc_r_df[order(my_pc_r_df$PC1,decreasing = TRUE),]
+
+
+pc_df_plot<-my_pc_r_df[,1, drop=F]
+pc_df_plot[pc_df_plot$PC1<0,1]<-0
+```
+
+#Fig S1F Clinical contribution PC1 in COVID19 patients
+
+```{r}
+PC_contribut<-pheatmap(data.matrix(pc_df_plot),
+         cluster_rows=F,
+         cluster_cols=F,,
+         show_rownames=T,
+         show_colnames = T,
+         scale = "none",
+         main = 'PC contribution',
+         cellwidth=32,
+         cellheight = 11,
+         display_numbers = TRUE,
+         col= colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(seq(-2, 2, by = .1))))
+
+```
+
+
+## 3.2. extract parameters with >0.10 PC1 contribution for distance analysis
+```{r}
+omicx_par<-rownames(my_pc_r_df[my_pc_r_df$PC1>=0.10,])
+omicx_par
+
+```
+
+```{r}
+#choose only covid19 for clustering
+covid_sample_table<-sample_table[sample_table$status=="covid",]
+
+rownames(covid_sample_table)<-covid_sample_table$ID
+
+sapply(covid_sample_table,class)
+
+```
+
+## 4.2. adapt the classes of the clustering sample table
+First we need to check the class of each of the columns
+I will choose sample table for clustering that only contains covid19 and only omicx_par
+```{r}
+
+library(cluster) 
+
+all_par<-c("status","Total.white.blood.cell.count...mm3.", "Total.neutrophil.count...mm3.","Total.lymphocyte.count...mm3.","age","gender","SOFA","Intubated","Outcome","Immune_classification","Charlson","PneumoniaIndex","diabetes2","Chronic_heart_failure","Chronic_renal_disease","Coronary_heart_disease","Dyslipidemia","Hypothyroidism","Hypertension","WHO")
+
+clustering_sample_table<-covid_sample_table[,which(colnames(covid_sample_table) %in% omicx_par)]
+
+
+
+#factor correctly the SOFA score. SOFA score <= all SOFA scores are below 8. Report evidance define intervals of predictions for SOFA scores : <=9, predict 33% or below mortality. https://jamanetwork.com/journals/jama/fullarticle/194262#:~:text=An%20initial%20SOFA%20score%20up,%25%20(Figure%201A).Therfore, value is factored
+clustering_sample_table$SOFA<-factor(clustering_sample_table$SOFA, levels=(rev(c(1:max(clustering_sample_table$SOFA)))))
+
+clustering_sample_table$WHO<-factor(clustering_sample_table$WHO, levels=(c(1:max(clustering_sample_table$WHO))), ordered=T)
+
+clustering_sample_table$PneumoniaIndex<-factor(clustering_sample_table$PneumoniaIndex, levels=(c(1:max(clustering_sample_table$PneumoniaIndex, na.rm = T))), ordered=T)
+
+
+#factor intubated
+y_n_levels<-c("Yes","No")
+clustering_sample_table$Intubated<-factor(clustering_sample_table$Intubated, levels=y_n_levels)
+
+
+#factor Immune_class
+clustering_sample_table$Immune_classification<-factor(clustering_sample_table$Immune_classification, levels=c("Intermediate","Dysregulation","MAS"))
+
+
+sapply(clustering_sample_table,class)
+```
+
+## 4.3.distance calculation
+```{r}
+# to perform different types of hierarchical clustering
+# package functions used: daisy(), diana(), clusplot()
+
+gower.dist<-NULL
+gower.dist <- daisy(clustering_sample_table, metric = c("gower"))
+
+# The main input for the code below is dissimilarity (distance matrix)
+summary(gower.dist)
+
+```
+
+## 4.4. Agglomerative clustering
+
+```{r}
+aggl.clust.c <- hclust(gower.dist, method = "ward.D2")
+
+
+```
+
+### Figure S1 panel G: Clustering stat
+
+
+#### S1, G top plot: Agglomerative clustering ss-plot
+```{r}
+
+ggplot(data = data.frame(t(cstats.table(gower.dist, aggl.clust.c, 15))), 
+  aes(x=cluster.number, y=within.cluster.ss)) + 
+  geom_point()+
+  geom_line()+
+  ggtitle("Agglomerative clustering") +
+  labs(x = "Num.of clusters", y = "Within clusters sum of squares (SS)") +
+  theme(plot.title = element_text(hjust = 0.5)) + theme_classic()+scale_x_continuous(breaks=c(2,3,4,5,6,7,8), limits = c(2,8),labels = c("2","","4","","6","","8"))
+
+
+
+```
+
+#### S1, G bottom plot: Silhouette plot
+```{r}
+ggplot(data = data.frame(t(cstats.table(gower.dist, aggl.clust.c, 8))), 
+  aes(x=cluster.number, y=avg.silwidth)) + 
+  geom_point()+
+  geom_line()+
+  ggtitle("Agglomerative clustering") +
+  labs(x = "Num.of clusters", y = "Average silhouette width") +
+  theme(plot.title = element_text(hjust = 0.5)) + theme_classic()+scale_x_continuous(breaks=c(2,3,4,5,6,7,8), limits = c(2,8),labels = c("2","","4","","6","","8"))
+```
+
+
+# 5. Add new cluster to sample table
+```{r}
+my_clusters=5
+
+
+#the following function will retrive to which cluster each of the samples belongs to
+aggl.clust.5.omix <- cutree(aggl.clust.c, k = my_clusters)
+
+
+
+sample_table_clustered<-sample_table
+sample_table_clustered$aggl.clust.5.omix<-0
+sample_table_clustered$aggl.clust.5.omix<-aggl.clust.5.omix[match(sample_table_clustered$ID,names(aggl.clust.5.omix))]
+sample_table_clustered[sample_table_clustered$status=="healthy","aggl.clust.5.omix"]<-0
+```
+
+# 6. Figure S1 panel H- Heatmap clinical parameters across agg.cluster
+```{r}
+
+sample_table<-sample_table_clustered
+cohort<-sample_table[sample_table$status=="covid",]
+
+clusters<-c(1:5)
+names(clusters)<-as.character (table(cohort$aggl.clust.5.omix)[1:(length(clusters))])
+
+#columns that are only relevant for clustering
+clinic_hm_df<-NULL
+clinic_hm_df<-as.data.frame(matrix(nrow=length(clusters), ncol=(length(omicx_par)),dimnames = list(c(paste0("aggl.clust_",clusters,", N=",names(clusters))),c(omicx_par))))
+
+
+#define type of parameters for heatmap calculation
+par_parameters<-all_par[!all_par %in% c("status")]
+yn_col<-c("Intubated","diabetes2","Dyslipidemia","Hypothyroidism","Coronary_heart_disease","Chronic_renal_disease","Chronic_heart_failure","Hypertension")
+numeric_col<-c("Total.white.blood.cell.count...mm3." ,"Total.neutrophil.count...mm3." , "Total.lymphocyte.count...mm3.","age","SOFA","Charlson","PneumoniaIndex","WHO")
+
+for (i in 1:length(clusters)){
+  cluster<-clusters[i]
+  cluster_df<-cohort[cohort$aggl.clust.5.omix==cluster,]
+  
+  for (j in 1:length(omicx_par)){
+    my_par<-omicx_par[j]
+    filtered_df<-cluster_df
+    
+    if (my_par=="gender"){ #if parameter is gender calculate the percentage of males
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df$gender=="M",])*100/nrow(filtered_df)
+    } else if (my_par %in% yn_col){ #if parameter is yes/no column, meaning yes/no percentage of yes
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="Yes",])*100/nrow(filtered_df)
+    } else if (my_par=="Outcome"){ #In case of outcome calculate the percentage of death
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="Death",])*100/nrow(filtered_df)
+    }else if (my_par=="Immune_classification"){ #calculate dysregulation/MAS perc
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="MAS" | filtered_df[my_par]=="Dysregulation",])*100/nrow(filtered_df)
+    }else if (is.factor(filtered_df[[my_par]])==TRUE){
+        clinic_hm_df[i,my_par]<-mean(as.numeric(unfactor(filtered_df[[my_par]])), na.rm=T)
+      } else if (is.factor(filtered_df[[my_par]])==FALSE) {
+         clinic_hm_df[i,my_par]<-mean(filtered_df[[my_par]], na.rm=T)
+      }  
+    
+    
+  }
+}
+
+scaled_df<-scale(clinic_hm_df)
+scaled_df<-t(scaled_df)
+
+
+hm_plot<-pheatmap(scaled_df, 
+         cluster_rows = T,
+         cluster_cols = F,
+         show_rownames=T,
+         show_colnames = T,
+         cellheight = 14,
+         cellwidth = 20,
+         color= colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(seq(-2, 2, by = .1))),
+         breaks= unique(c(floor(-max(scaled_df, na.rm=T)), seq(-2, 2, 0.1),  ceiling(max(scaled_df, na.rm=T)))))
+```
+
+
+
+
+
+

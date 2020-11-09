@@ -1,0 +1,365 @@
+---
+title: "Fig. 1 panel I"
+author: "TP"
+date: "10/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This sciprt is for generating the clusters based on clinical data.
+In this script you can generate: 
+1) clusters
+2) The plots used for figure S1 panels F-H (heatmap of PC1 contribution, plots for assesing number of clusters)
+
+# 1. R requirements
+## 1.1. Load required packages
+```{r}
+library("cluster")
+library("ggplot2")
+library("randomcoloR")
+library("factoextra")
+library("mixOmics")
+library("fpc")
+library("pheatmap")
+```
+## 1.2. Custom functions
+
+####Function for clustering stat
+
+```{r}
+
+# This code below will produce a dataframe with observations in columns and variables in row
+
+library(fpc)
+cstats.table <- function(dist, tree, k) {
+clust.assess <- c("cluster.number","n","within.cluster.ss","average.within","average.between",
+                  "wb.ratio","dunn2","avg.silwidth")
+clust.size <- c("cluster.size")
+stats.names <- c()
+row.clust <- c()
+output.stats <- matrix(ncol = k, nrow = length(clust.assess))
+cluster.sizes <- matrix(ncol = k, nrow = k)
+for(i in c(1:k)){
+  row.clust[i] <- paste("Cluster-", i, " size")
+}
+for(i in c(2:k)){
+  stats.names[i] <- paste("Test", i-1)
+  
+  for(j in seq_along(clust.assess)){
+    output.stats[j, i] <- unlist(cluster.stats(d = dist, clustering = cutree(tree, k = i))[clust.assess])[j]
+    
+  }
+  
+  for(d in 1:k) {
+    cluster.sizes[d, i] <- unlist(cluster.stats(d = dist, clustering = cutree(tree, k = i))[clust.size])[d]
+    dim(cluster.sizes[d, i]) <- c(length(cluster.sizes[i]), 1)
+    cluster.sizes[d, i]
+    
+  }
+}
+output.stats.df <- data.frame(output.stats)
+cluster.sizes <- data.frame(cluster.sizes)
+cluster.sizes[is.na(cluster.sizes)] <- 0
+rows.all <- c(clust.assess, row.clust)
+# rownames(output.stats.df) <- clust.assess
+output <- rbind(output.stats.df, cluster.sizes)[ ,-1]
+colnames(output) <- stats.names[2:k]
+rownames(output) <- rows.all
+is.num <- sapply(output, is.numeric)
+output[is.num] <- lapply(output[is.num], round, 2)
+output
+}
+
+```
+
+# 2. Load data
+## 2.1. Set directory and upload data
+```{r}
+dir<-setwd(dirname(rstudioapi::getSourceEditorContext()$path)) #set your directory here
+
+file_name<-"201015_final_sample_table.txt" #sample table file name here
+sample_table<-read.delim(file.path(dir,file_name),header=TRUE, stringsAsFactors = TRUE, sep="\t")
+
+head(sample_table)
+
+```
+## Load dds_vst (transcriptome data for PCA)
+```{r}
+load(paste0(dir, "/dds_vst.RData"))
+```
+
+
+
+# 3. PC contribution using Mixomics
+
+Because the healthy individuals have most the clinical information missing, we do not consider the clinical parameters of healthy in this analysis but only for COVID patients
+
+##3.1.PC1/2 contributions
+```{r}
+
+sample_table$SOFA<-as.integer(sample_table$SOFA)
+sample_table$WHO<-as.integer(sample_table$WHO)
+
+#START HERE
+rld_df<-data.frame(assay(dds_vst))
+dds_vst_matrix<-as.matrix(assay(dds_vst))
+# Select principal components
+tune.pca(t(dds_vst_matrix),ncomp = NULL,center = T)
+pca.data<-pca(t(rld_df), ncomp=5, center=T,scale=F)
+plot(pca.data)
+pca.data
+pca.data$x<-as.data.frame(pca.data$x)
+
+
+
+
+#preform analysis for contribution only for covid, to do that I will replace the parameters in healthy to NA
+sample_table[sample_table$status=="healthy",c(3:30)]<-NA
+
+# Calculate variance attributed to metadata
+M<-sample_table
+rownames(M)<-sample_table$ID
+M<-M[,which(colnames(M) %in% c("status","Total.white.blood.cell.count...mm3.", "Total.neutrophil.count...mm3.","Total.lymphocyte.count...mm3.","age","gender","SOFA","Intubated","Outcome","Immune_classification","Charlson","PneumoniaIndex","diabetes2","Chronic_heart_failure","Chronic_renal_disease","Coronary_heart_disease","Dyslipidemia","Hypothyroidism","Hypertension","WHO"))]
+
+
+
+#pca.data$x<-pca.data$x[,c(1:5)]
+pc_adj_r_squared<-matrix(NA,ncol=dim(pca.data$x)[2],nrow=dim(M)[2])
+
+
+
+for(i in 1:dim(pca.data$x)[2]){
+  print(i)
+  for(j in 1:dim(M)[2])
+  {
+    pc_adj_r_squared[j,i]<-summary(lm(pca.data$x[,i]~M[,j], na.action=na.exclude))$adj.r.squared
+  }
+}
+pc_adj_r_squared<-as.data.frame(pc_adj_r_squared)
+colnames(pc_adj_r_squared)<-colnames(pca.data$x)
+rownames(pc_adj_r_squared)<-colnames(M)
+pc_adj_r_squared<-pc_adj_r_squared[,-6]
+pc_adj_r_squared
+
+my_pc_r_df<-pc_adj_r_squared[-1,c(1:2)]
+#my_pc_r_df<-my_pc_r_df[c(10:21),]
+my_pc_r_df<-my_pc_r_df[order(my_pc_r_df$PC1,decreasing = TRUE),]
+
+
+pc_df_plot<-my_pc_r_df[,1, drop=F]
+pc_df_plot[pc_df_plot$PC1<0,1]<-0
+```
+
+### Figure S1 panel F, heatmap of contributions to PC1 
+```{r}
+PC_contribut<-pheatmap(data.matrix(pc_df_plot),
+         cluster_rows=F,
+         cluster_cols=F,,
+         show_rownames=T,
+         show_colnames = T,
+         scale = "none",
+         main = 'PC contribution',
+         cellwidth=32,
+         cellheight = 11,
+         display_numbers = TRUE,
+         col= colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(seq(-2, 2, by = .1))))
+
+```
+
+## 3.2. extract parameters with >0.10 PC1 contribution for distance analysis
+```{r}
+omicx_par<-rownames(my_pc_r_df[my_pc_r_df$PC1>=0.10,])
+omicx_par
+
+```
+
+# 4. Clinical based clusters
+The clusters generate below are used Figure 1 panel I + Figure S1 panels F,G: Patients clustering
+## 4.1. Clustering sample table
+
+```{r}
+#choose only covid19 for clustering
+covid_sample_table<-sample_table[sample_table$status=="covid",]
+
+rownames(covid_sample_table)<-covid_sample_table$ID
+
+sapply(covid_sample_table,class)
+
+```
+##3.2. extract parameters with >0.10 PC1 contribution for distance analysis
+```{r}
+omicx_par<-rownames(my_pc_r_df[my_pc_r_df$PC1>=0.10,])
+omicx_par
+
+```
+
+## 4.2. adapt the classes of the clustering sample table
+First we need to check the class of each of the columns
+I will choose sample table for clustering that only contains covid19 and only omicx_par
+```{r}
+
+library(cluster) 
+
+all_par<-c("status","Total.white.blood.cell.count...mm3.", "Total.neutrophil.count...mm3.","Total.lymphocyte.count...mm3.","age","gender","SOFA","Intubated","Outcome","Immune_classification","Charlson","PneumoniaIndex","diabetes2","Chronic_heart_failure","Chronic_renal_disease","Coronary_heart_disease","Dyslipidemia","Hypothyroidism","Hypertension","WHO")
+
+clustering_sample_table<-covid_sample_table[,which(colnames(covid_sample_table) %in% omicx_par)]
+
+
+
+#factor correctly the SOFA score. SOFA score <= all SOFA scores are below 8. Report evidance define intervals of predictions for SOFA scores : <=9, predict 33% or below mortality. https://jamanetwork.com/journals/jama/fullarticle/194262#:~:text=An%20initial%20SOFA%20score%20up,%25%20(Figure%201A).Therfore, value is factored
+clustering_sample_table$SOFA<-factor(clustering_sample_table$SOFA, levels=(rev(c(1:max(clustering_sample_table$SOFA)))))
+
+clustering_sample_table$WHO<-factor(clustering_sample_table$WHO, levels=(c(1:max(clustering_sample_table$WHO))), ordered=T)
+
+clustering_sample_table$PneumoniaIndex<-factor(clustering_sample_table$PneumoniaIndex, levels=(c(1:max(clustering_sample_table$PneumoniaIndex, na.rm = T))), ordered=T)
+
+
+#factor intubated
+y_n_levels<-c("Yes","No")
+clustering_sample_table$Intubated<-factor(clustering_sample_table$Intubated, levels=y_n_levels)
+
+
+#factor Immune_class
+clustering_sample_table$Immune_classification<-factor(clustering_sample_table$Immune_classification, levels=c("Intermediate","Dysregulation","MAS"))
+
+
+sapply(clustering_sample_table,class)
+```
+
+## 4.3.distance calculation
+```{r}
+# to perform different types of hierarchical clustering
+# package functions used: daisy(), diana(), clusplot()
+
+gower.dist<-NULL
+gower.dist <- daisy(clustering_sample_table, metric = c("gower"))
+
+# The main input for the code below is dissimilarity (distance matrix)
+summary(gower.dist)
+
+```
+
+## 4.4. Agglomerative clustering
+
+```{r}
+aggl.clust.c <- hclust(gower.dist, method = "ward.D2")
+plot(aggl.clust.c,
+     main = "Agglomerative, ward.D2 linkages")
+
+```
+
+### Figure S1 panel G: Clustering stat
+
+
+#### S1, G top plot: Agglomerative clustering ss-plot
+```{r}
+
+ggplot(data = data.frame(t(cstats.table(gower.dist, aggl.clust.c, 15))), 
+  aes(x=cluster.number, y=within.cluster.ss)) + 
+  geom_point()+
+  geom_line()+
+  ggtitle("Agglomerative clustering") +
+  labs(x = "Num.of clusters", y = "Within clusters sum of squares (SS)") +
+  theme(plot.title = element_text(hjust = 0.5)) + theme_classic()+scale_x_continuous(breaks=c(2,3,4,5,6,7,8), limits = c(2,8),labels = c("2","","4","","6","","8"))
+```
+
+#### S1, G bottom plot: Silhouette plot
+```{r}
+ggplot(data = data.frame(t(cstats.table(gower.dist, aggl.clust.c, 8))), 
+  aes(x=cluster.number, y=avg.silwidth)) + 
+  geom_point()+
+  geom_line()+
+  ggtitle("Agglomerative clustering") +
+  labs(x = "Num.of clusters", y = "Average silhouette width") +
+  theme(plot.title = element_text(hjust = 0.5)) + theme_classic()+scale_x_continuous(breaks=c(2,3,4,5,6,7,8), limits = c(2,8),labels = c("2","","4","","6","","8"))
+```
+
+
+
+# 5. Add new cluster to sample table
+```{r}
+my_clusters=6
+
+
+#the following function will retrive to which cluster each of the samples belongs to
+aggl.clust.6.omix <- cutree(aggl.clust.c, k = my_clusters)
+
+
+
+sample_table_clustered<-sample_table
+sample_table_clustered$aggl.clust.6.omix<-0
+sample_table_clustered$aggl.clust.6.omix<-aggl.clust.6.omix[match(sample_table_clustered$ID,names(aggl.clust.6.omix))]
+sample_table_clustered[sample_table_clustered$status=="healthy","aggl.clust.6.omix"]<-0
+
+
+head(sample_table_clustered)
+
+```
+
+# 6. Figure S1 panel H- Heatmap clinical parameters across agg.cluster
+```{r}
+
+sample_table<-sample_table_clustered
+cohort<-sample_table[sample_table$status=="covid",]
+cohort$SOFA<-as.integer(cohort$SOFA)
+cohort$WHO<-as.integer(cohort$WHO)
+cohort$PneumoniaIndex<-as.integer(cohort$PneumoniaIndex)
+
+
+
+clusters<-c(1:6)
+names(clusters)<-as.character (table(cohort$aggl.clust.6.omix)[1:(length(clusters))])
+
+#columns that are only relevant for clustering
+clinic_hm_df<-NULL
+clinic_hm_df<-as.data.frame(matrix(nrow=length(clusters), ncol=(length(omicx_par)),dimnames = list(c(paste0("aggl.clust_",clusters,", N=",names(clusters))),c(omicx_par))))
+
+
+#define type of parameters for heatmap calculation
+par_parameters<-all_par[!all_par %in% c("status")]
+yn_col<-c("Intubated","diabetes2","Dyslipidemia","Hypothyroidism","Coronary_heart_disease","Chronic_renal_disease","Chronic_heart_failure","Hypertension")
+numeric_col<-c("Total.white.blood.cell.count...mm3." ,"Total.neutrophil.count...mm3." , "Total.lymphocyte.count...mm3.","age","SOFA","Charlson","PneumoniaIndex","WHO")
+
+for (i in 1:length(clusters)){
+  cluster<-clusters[i]
+  cluster_df<-cohort[cohort$aggl.clust.6.omix==cluster,]
+  
+  for (j in 1:length(omicx_par)){
+    my_par<-omicx_par[j]
+    filtered_df<-cluster_df
+    
+    if (my_par=="gender"){ #if parameter is gender calculate the percentage of males
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df$gender=="M",])*100/nrow(filtered_df)
+    } else if (my_par %in% yn_col){ #if parameter is yes/no column, meaning yes/no percentage of yes
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="Yes",])*100/nrow(filtered_df)
+    } else if (my_par=="Outcome"){ #In case of outcome calculate the percentage of death
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="Death",])*100/nrow(filtered_df)
+    }else if (my_par=="Immune_classification"){ #calculate dysregulation/MAS perc
+      clinic_hm_df[i,my_par]<-nrow(filtered_df[filtered_df[my_par]=="MAS" | filtered_df[my_par]=="Dysregulation",])*100/nrow(filtered_df)
+    }else if (is.factor(filtered_df[[my_par]])==TRUE){
+        clinic_hm_df[i,my_par]<-mean(as.numeric(unfactor(filtered_df[[my_par]])), na.rm=T)
+      } else if (is.factor(filtered_df[[my_par]])==FALSE) {
+         clinic_hm_df[i,my_par]<-mean(filtered_df[[my_par]], na.rm=T)
+      }  
+    
+    
+  }
+}
+
+scaled_df<-scale(clinic_hm_df)
+scaled_df<-t(scaled_df)
+
+
+pheatmap(scaled_df, 
+         cluster_rows = T,
+         cluster_cols = F,
+         show_rownames=T,
+         show_colnames = T,
+         cellheight = 14,
+         cellwidth = 20,
+         color= colorRampPalette(rev(RColorBrewer::brewer.pal(n = 11, name = "RdBu")))(length(seq(-2, 2, by = .1))))
+```
+
