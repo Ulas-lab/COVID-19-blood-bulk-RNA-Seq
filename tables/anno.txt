@@ -1,0 +1,50 @@
+ID	status	ID_switched	Total.white.blood.cell.count...mm3.	Total.neutrophil.count...mm3.	Total.lymphocyte.count...mm3.	CD3.CD4.CD45.count...mm3.	CD19.CD5.CD45.count...mm3..1	status.1	age	gender	SOFA	Intubated	Outcome	Immune_classification	Charlson	PneumoniaIndex	diabetes2	Chronic_heart_failure	Chronic_renal_disease	Coronary_heart_disease	Dyslipidemia	Hypothyroidism	Hypertension	merged	new_cluster
+9088	covid	9088	14130	12010	1271	304	241	covid	67	M	3	Yes	Survival	Dysregulation	3	97	Yes	No	No	No	Yes	No	Yes	covid_Yes	1
+9089	covid	9089	12840	11427	513	39	55	covid	83	M	8	Yes	Survival	Dysregulation	4	123	No	No	No	No	No	No	No	covid_Yes	2
+9091	covid	9091	12770	11493	511			covid	77	M	6	Yes	Survival	Dysregulation	4	177	No	Yes	No	Yes	No	No	Yes	covid_Yes	2
+9092	covid	9092	8660	8054	251	42	67	covid	60	M	6	Yes	Survival	MAS	2	130	No	No	No	No	Yes	No	Yes	covid_Yes	2
+9093	covid	9093	9390	7699	845	208	3018	covid	63	M	7	Yes	Survival	Dysregulation	3	163	No	No	No	No	No	No	No	covid_Yes	2
+9094	covid	9094	11380	7397	3300	206	3019	covid	62	M	8	Yes	Survival	Dysregulation	8	182	Yes	No	No	No	No	No	Yes	covid_Yes	1
+9095	covid	9095	10280	8224	802	168	205	covid	63	M	8	Yes	Survival	Dysregulation	2	178	No	No	Yes	No	Yes	Yes	No	covid_Yes	3
+9096	covid	9096	7590	5897	1063			covid	50	M	1	No	Survival	Intermediate	2	100	No	No	No	No	No	No	No	covid_No	4
+9097	covid	9097	6510	5388	753			covid	65	F	3	No	Survival	Intermediate	3	55	Yes	No	No	No	Yes	No	Yes	covid_No	4
+9098	covid	9098	4850	3847	555			covid	61	M	1	No	Survival	Intermediate	3	91	No	No	No	No	No	No	No	covid_No	1
+9099	covid	9099	6450	4871	793			covid	55	M	0	No	Survival	Intermediate	1		No	No	No	No	No	No	No	covid_No	1
+9100	covid	9100	5400	4320	864	552	127	covid	56	M	6	Yes	Survival	Intermediate	1	106	No	No	No	No	No	No	No	covid_Yes	4
+9101	covid	9101	11950	10684	455			covid	79	M	3	Yes	Survival	Intermediate	4	119	No	No	No	No	No	No	Yes	covid_Yes	2
+9102	covid	9102	5360	4352	680			covid	59	F	2	No	Survival	Intermediate	2	104	No	No	No	Yes	No	Yes	Yes	covid_No	4
+9103	covid	9103	4030	2667	1033			covid	35	M	2	No	Survival	Intermediate	0	55	Yes	No	No	No	No	Yes	Yes	covid_No	1
+9104	covid	9104	6180	4070	1352			covid	40	M	1	No	Survival	Intermediate	0	40	No	No	No	No	No	No	No	covid_No	1
+9105	covid	9105	3710	2059	1049			covid	78	M	1	No	Survival	Intermediate	4	98	No	No	No	No	No	No	No	covid_No	2
+9106	covid	9106	8420	7174	784			covid	52	M	3	Yes	Death	MAS	1	91	No	No	No	Yes	Yes	No	Yes	covid_Yes	3
+9107	covid	9107	9510	7180	1236			covid	54	M	2	No	Survival	Intermediate	2	84	No	No	No	No	No	No	Yes	covid_No	1
+9108	covid	9108	10800	10076	324			covid	74	M	8	Yes	Death	Dysregulation	5	114	No	Yes	No	No	No	No	No	covid_Yes	5
+9109	covid	9109	6180	4209	1428			covid	64	M	2	No	Survival	Intermediate	3	74	No	No	No	No	No	No	Yes	covid_No	1
+9110	covid	9110	15910	14367	493			covid	67	M	8	Yes	Survival	Dysregulation	3	132	No	No	No	No	No	No	No	covid_Yes	5
+9112	covid	9112	6250	4435	1204			covid	43	M	0	No	Survival	Intermediate	1		Yes	No	No	No	No	No	Yes	covid_No	4
+9113	covid	9113	8420	6280	1512			covid	40	M	4	No	Survival	Intermediate	0	59	No	No	No	No	No	No	No	covid_No	2
+9114	covid	9123	3810	1700	1790			covid	66	M	3	No	Survival	Intermediate	2	66	No	No	No	No	No	No	No	covid_No	1
+9116	covid	9116	3200	2899	220			covid	84	M	7	Yes	Survival	MAS	10	174	No	No	No	No	No	No	No	covid_Yes	2
+9117	covid	9117	17570	16691	411			covid	58	M	8	No	Survival	Intermediate	1	88	No	No	No	No	Yes	No	No	covid_No	2
+9118	covid	9118	9660	7921	1092			covid	74	M	5	No	Survival	Intermediate	5		No	No	No	No	No	No	Yes	covid_No	1
+9119	covid	9119	4980	3849	7912			covid	60	F	2	No	Survival	Intermediate	2	50	Yes	No	No	Yes	No	No	Yes	covid_No	1
+9120	covid	9120	11560	9942	1040			covid	69	F	7	Yes	Survival	Dysregulation	3	89	No	No	No	No	No	No	No	covid_Yes	3
+9121	covid	9121	7300	5621	1022			covid	46	M	7	Yes	Survival	Dysregulation	0	46	Yes	No	No	No	No	Yes	Yes	covid_Yes	1
+9122	healthy	9122						healthy	45	F	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	1
+9123	healthy	9114						healthy	32	F	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9124	healthy	9124						healthy	28	M	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9125	healthy	9125						healthy	52	M	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9126	healthy	9126						healthy	45	M	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9127	healthy	9127						healthy	40	F	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9128	healthy	9128						healthy	35	M	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9129	healthy	9129						healthy	48	F	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9130	healthy	9130						healthy	39	F	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9131	healthy	9131						healthy	41	M	0	No	Survival	healthy	0	0	unclear	unclear	unclear	unclear	unclear	unclear	unclear	healthy_No	6
+9165	covid	9165	3259	952	223	128		covid	70	M	1	No	Survival	Intermediate	3	90	No	No	No	No	No	No	No	covid_No	5
+9166	covid	9166	9157	814				covid	68	M	7	Yes	Death	Dysregulation	2	88	Yes	No	No	No	No	No	Yes	covid_Yes	3
+9167	covid	9167	2248	1610				covid	49	M	5	No	Survival	Intermediate	0	40	No	No	No	No	No	No	Yes	covid_No	6
+9168	covid	9168	16288	1136				covid	40	F	6	Yes	Survival	Dysregulation	1	60	Yes	No	No	No	No	No	No	covid_Yes	4
+9169	covid	9169	4203	1131				covid	90	F	4	No	Survival	Intermediate	5	120	No	No	No	No	Yes	No	No	covid_No	4
+9170	covid	9170						covid	71	M	4	Yes	Survival	Dysregulation	1		No	No	No	No	No	No	No	covid_Yes	3
+9171	covid	9171	10824	849				covid	50	M	5	Yes	Survival	Dysregulation	1	50	No	No	No	No	Yes	No	No	covid_Yes	3
+9172	covid	9172						covid	58	F	6	Yes	Death	MAS	1	85	No	No	No	No	No	No	No	covid_Yes	5
